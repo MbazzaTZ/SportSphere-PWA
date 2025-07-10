@@ -23,23 +23,13 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        /* Set a dark theme for the scrollbar and body */
-        body {
-            background-color: #111827; /* gray-900 */
-            font-family: 'Inter', sans-serif;
-        }
-
-        /* Custom scrollbar for better aesthetics */
+        body { background-color: #111827; font-family: 'Inter', sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-
-        /* Hide scrollbar for the horizontal mobile navigation */
         .custom-scrollbar-nav::-webkit-scrollbar { display: none; }
         .custom-scrollbar-nav { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Styles for the custom toggle component */
         .toggle { -webkit-appearance: none; -moz-appearance: none; appearance: none; height: 1.5rem; width: 2.75rem; border-radius: 9999px; background-color: #4b5563; position: relative; cursor: pointer; transition: background-color 0.2s ease-in-out; }
         .toggle:checked { background-color: #06B6D4; }
         .toggle::before { content: ""; position: absolute; top: 0.25rem; left: 0.25rem; height: 1rem; width: 1rem; border-radius: 9999px; background-color: white; transition: transform 0.2s ease-in-out; }
@@ -111,29 +101,26 @@
 
         // --- General UI Components ---
         const RoleBadge = ({ role, className = '' }) => (<div className={`px-3 py-1 rounded-full text-sm font-semibold border flex items-center justify-center space-x-1.5 ${getRoleColorClass(role)} ${className}`}><span className="text-lg">{roleIcons[role] || '❓'}</span><span>{role === 'NewsChannel' ? 'News Channel' : role}</span></div>);
-        const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => !isOpen ? null : (<div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"><div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm mx-4"><h3 className="text-lg font-bold text-white mb-2">{title}</h3><p className="text-gray-300 mb-6">{message}</p><div className="flex justify-end space-x-4"><button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-300 bg-gray-700 hover:bg-gray-600 transition-colors">Cancel</button><button onClick={onConfirm} className="px-4 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors">Confirm</button></div></div></div>);
         const SectionHeader = ({ title }) => <h3 className="text-xl font-semibold text-white mb-4 border-b-2 border-gray-700 pb-2">{title}</h3>;
         const InfoCard = ({ title, children }) => (<div className="mb-8"><SectionHeader title={title} /><div className="bg-gray-800/50 p-4 rounded-lg space-y-3">{children}</div></div>);
-        const ListItem = ({ children }) => <div className="flex items-center space-x-3 text-gray-300">{children}</div>;
         const StatCard = ({ label, value }) => (<div className="bg-gray-800 p-4 rounded-lg text-center shadow-md transform hover:scale-105 transition-transform duration-300"><p className="text-sm text-gray-400">{label}</p><p className="text-2xl font-bold text-white">{value}</p></div>);
-        const TrophyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor"><path d="M11 2a1 1 0 10-2 0v1a1 1 0 102 0V2z" /><path fillRule="evenodd" d="M10 4a.75.75 0 01.75.75v.5a.75.75 0 01-1.5 0v-.5A.75.75 0 0110 4zM6 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1z" /><path fillRule="evenodd" d="M3.5 8a.5.5 0 01.5-.5h12a.5.5 0 010 1H4a.5.5 0 01-.5-.5z" /><path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" /><path d="M8.25 15.25a.75.75 0 01.75-.75h2a.75.75 0 010 1.5h-2a.75.75 0 01-.75-.75zM7 17a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z" /></svg>;
         const LoadingSpinner = () => <div className="flex items-center justify-center h-screen bg-gray-900"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div></div>;
 
         // --- Profile Components ---
-        const ProfileHeader = ({ user, role, affiliation }) => (
+        const ProfileHeader = ({ user, profileData }) => (
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
                 <div className="flex items-center space-x-6">
                     <img src={user.photoURL || `https://placehold.co/200x200/1f2937/4b5563?text=${user.displayName?.charAt(0) || 'U'}`} alt={`${user.displayName} profile`} className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-gray-600" />
                     <div>
                         <h1 className="text-3xl sm:text-4xl font-bold text-white">{user.displayName || 'User'}</h1>
-                        <p className="text-lg text-cyan-400">{role}</p>
-                        {affiliation && <p className="text-md text-gray-300">{affiliation}</p>}
+                        <p className="text-lg text-cyan-400">{profileData.role}</p>
+                        {profileData.affiliation && <p className="text-md text-gray-300">{profileData.affiliation}</p>}
                     </div>
                 </div>
             </div>
         );
 
-        const PostCreationForm = ({ onPostSubmit, user, role }) => {
+        const PostCreationForm = ({ user, role }) => {
             const [newPost, setNewPost] = useState({ text: '', image: null });
             const [showPostForm, setShowPostForm] = useState(false);
             const [isUploading, setIsUploading] = useState(false);
@@ -205,82 +192,61 @@
         );
 
         // --- Role-Specific Profile Components ---
-        const FanProfile = ({ user, role }) => (
+        const FanProfile = ({ user, profileData }) => (
             <>
-                <ProfileHeader user={user} role={role} />
-                <InfoCard title="Socials"><div className="grid grid-cols-3 gap-4"><SocialStat label="Followers" value="105" /><SocialStat label="Following" value="210" /><SocialStat label="Posts" value="42" /></div></InfoCard>
-                <p className="text-gray-300 mb-6">{user.bio || "Just a passionate sports fan! Living for the game."}</p>
-                <InfoCard title="Favorite Teams & Sports"><div className="flex flex-wrap gap-2">{['Simba SC', 'Lakers', 'Football', 'Basketball'].map(item => <div key={item} className="bg-gray-700 px-3 py-1 rounded-full text-sm">{item}</div>)}</div></InfoCard>
-                <InfoCard title="Posts"><PostCreationForm user={user} role={role} /><ProfilePostFeed userId={user.uid} /></InfoCard>
+                <ProfileHeader user={user} profileData={profileData} />
+                <p className="text-gray-300 mb-6">{profileData.bio || "Just a passionate sports fan! Living for the game."}</p>
+                <InfoCard title="Posts"><PostCreationForm user={user} role={profileData.role} /><ProfilePostFeed userId={user.uid} /></InfoCard>
             </>
         );
 
-        const PlayerProfile = ({ user, role }) => (
+        const PlayerProfile = ({ user, profileData }) => (
             <>
-                <ProfileHeader user={user} role={role} affiliation="Simba SC - Football" />
-                <InfoCard title="Socials"><div className="grid grid-cols-3 gap-4"><SocialStat label="Followers" value="1.2M" /><SocialStat label="Likes" value="5.6M" /><SocialStat label="Posts" value="189" /></div></InfoCard>
-                <p className="text-gray-300 mb-6">{user.bio || "Dedicated athlete striving for greatness. All gas, no brakes."}</p>
-                <InfoCard title="Key Stats"><div className="grid grid-cols-2 md:grid-cols-3 gap-4">{[{label: 'Goals', value: 22}, {label: 'Assists', value: 15}, {label: 'Matches', value: 34}].map(stat => <StatCard key={stat.label} {...stat} />)}</div></InfoCard>
-                <InfoCard title="Achievements"><div className="grid grid-cols-1 md:grid-cols-2 gap-3">{['3x League MVP', '2x Champion', 'Golden Boot 2023'].map(ach => <ListItem key={ach}><TrophyIcon /><span>{ach}</span></ListItem>)}</div></InfoCard>
-                <InfoCard title="Career History"><ul className="list-disc list-inside text-gray-300"><li>2022-Present: Simba SC</li><li>2019-2022: Azam FC</li></ul></InfoCard>
-                <InfoCard title="Posts"><PostCreationForm user={user} role={role} /><ProfilePostFeed userId={user.uid} /></InfoCard>
+                <ProfileHeader user={user} profileData={profileData} />
+                <p className="text-gray-300 mb-6">{profileData.bio || "Dedicated athlete striving for greatness."}</p>
+                <InfoCard title="Posts"><PostCreationForm user={user} role={profileData.role} /><ProfilePostFeed userId={user.uid} /></InfoCard>
             </>
         );
         
-        const ReporterProfile = ({ user, role }) => (
+        const ReporterProfile = ({ user, profileData }) => (
             <>
-                <ProfileHeader user={user} role={role} affiliation="The Daily Chronicle" />
-                <p className="text-gray-300 mb-6">{user.bio || "Lead sports journalist covering European football. Bringing you the latest stories from the pitch."}</p>
-                <InfoCard title="Portfolio / Articles">
-                    <div className="space-y-3">
-                        <a href="#" className="block p-3 bg-gray-700 rounded-lg hover:bg-gray-600">Transfer Saga Ends: Mbakazi Joins Real Madrid</a>
-                        <a href="#" className="block p-3 bg-gray-700 rounded-lg hover:bg-gray-600">Inside the Mind of a Champion: An Interview with Coach Juma</a>
-                    </div>
-                </InfoCard>
-                <InfoCard title="Posts"><PostCreationForm user={user} role={role} /><ProfilePostFeed userId={user.uid} /></InfoCard>
+                <ProfileHeader user={user} profileData={profileData} />
+                <p className="text-gray-300 mb-6">{profileData.bio || "Lead sports journalist. Bringing you the latest stories from the pitch."}</p>
+                <InfoCard title="Posts"><PostCreationForm user={user} role={profileData.role} /><ProfilePostFeed userId={user.uid} /></InfoCard>
             </>
         );
         
-        const AnalystProfile = ({ user, role }) => (
+        const AnalystProfile = ({ user, profileData }) => (
             <>
-                <ProfileHeader user={user} role={role} affiliation="Basketball Analytics" />
-                <p className="text-gray-300 mb-6">{user.bio || "Data-driven insights on the NBA. Specializing in predictive modeling and advanced metrics."}</p>
-                <InfoCard title="Analysis Section">
-                    <div className="space-y-3">
-                        <a href="#" className="block p-3 bg-gray-700 rounded-lg hover:bg-gray-600">Why the Lakers' New Offense is Statistically Unstoppable</a>
-                        <a href="#" className="block p-3 bg-gray-700 rounded-lg hover:bg-gray-600">Predicting the 2025 NBA MVP Using Machine Learning</a>
-                    </div>
-                </InfoCard>
-                <InfoCard title="Posts"><PostCreationForm user={user} role={role} /><ProfilePostFeed userId={user.uid} /></InfoCard>
+                <ProfileHeader user={user} profileData={profileData} />
+                <p className="text-gray-300 mb-6">{profileData.bio || "Data-driven sports analyst."}</p>
+                <InfoCard title="Posts"><PostCreationForm user={user} role={profileData.role} /><ProfilePostFeed userId={user.uid} /></InfoCard>
             </>
         );
 
-        const AdminProfile = ({ user, role }) => {
+        const AdminProfile = ({ user, profileData }) => {
             const [users, setUsers] = useState([]);
-            const [reportedContent, setReportedContent] = useState([]);
-            const [adminStats, setAdminStats] = useState({ totalUsers: 0, activeToday: 0, reports: 0 });
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const [userToBan, setUserToBan] = useState(null);
-
             useEffect(() => {
-                const usersUnsubscribe = db.collection('users').onSnapshot(snapshot => { setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setAdminStats(prev => ({ ...prev, totalUsers: snapshot.size })); });
-                const reportsUnsubscribe = db.collection('reports').onSnapshot(snapshot => { setReportedContent(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setAdminStats(prev => ({ ...prev, reports: snapshot.size })); });
-                const today = new Date(); today.setHours(0, 0, 0, 0);
-                db.collection('userActivity').where('lastActive', '>=', today).get().then(snapshot => setAdminStats(prev => ({ ...prev, activeToday: snapshot.size })));
-                return () => { usersUnsubscribe(); reportsUnsubscribe(); };
+                const unsubscribe = db.collection('users').onSnapshot(snapshot => setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+                return () => unsubscribe();
             }, []);
 
-            const confirmBanUser = async () => { if (userToBan) { await db.collection('users').doc(userToBan.id).update({ banned: true }); } closeModal(); };
-            const openBanModal = (user) => { setUserToBan(user); setIsModalOpen(true); };
-            const closeModal = () => { setIsModalOpen(false); setUserToBan(null); };
-            const handleResolveReport = async (reportId) => { await db.collection('reports').doc(reportId).update({ resolved: true }); };
-
-            return (<><ConfirmationModal isOpen={isModalOpen} onClose={closeModal} onConfirm={confirmBanUser} title="Ban User" message={`Are you sure you want to ban ${userToBan?.displayName || 'this user'}? This action cannot be undone.`} /><ProfileHeader user={user} role={role} /><InfoCard title="Admin Dashboard"><div className="grid grid-cols-3 gap-4"><StatCard label="Total Users" value={adminStats.totalUsers} /><StatCard label="Active Today" value={adminStats.activeToday} /><StatCard label="Reports" value={adminStats.reports} /></div></InfoCard><InfoCard title="User Management"><div className="overflow-x-auto"><table className="w-full text-gray-300"><thead><tr className="border-b border-gray-700"><th className="text-left p-2">User</th><th className="text-left p-2">Role</th><th className="text-left p-2">Status</th><th className="text-left p-2">Actions</th></tr></thead><tbody>{users.map(u => (<tr key={u.id} className="border-b border-gray-700 hover:bg-gray-700/50"><td className="p-2 flex items-center"><img src={u.photoURL || 'https://placehold.co/100x100/1f2937/4b5563?text=U'} className="w-8 h-8 rounded-full mr-2" /><span>{u.displayName}</span></td><td className="p-2"><RoleBadge role={u.role} className="text-xs" /></td><td className="p-2">{u.banned ? <span className="text-red-400">Banned</span> : <span className="text-green-400">Active</span>}</td><td className="p-2">{!u.banned && u.role !== 'Admin' && <button onClick={() => openBanModal(u)} className="text-red-400 hover:text-red-500 text-sm">Ban</button>}</td></tr>))}</tbody></table></div></InfoCard><InfoCard title="Reported Content"><div className="space-y-4">{reportedContent.length > 0 ? reportedContent.map(report => (<div key={report.id} className="bg-gray-700 p-4 rounded-lg"><div className="flex justify-between items-start"><div><p className="font-semibold">Report Type: {report.type}</p><p className="text-sm text-gray-400">Reason: {report.reason}</p></div>{!report.resolved && <button onClick={() => handleResolveReport(report.id)} className="px-3 py-1 bg-green-500 rounded text-white text-sm hover:bg-green-600">Resolve</button>}</div><p className="mt-2 text-sm">Content: {report.contentPreview}</p></div>)) : <p className="text-gray-400">No reported content.</p>}</div></InfoCard></>);
+            return (
+                <>
+                    <ProfileHeader user={user} profileData={profileData} />
+                    <InfoCard title="User Management">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-gray-300">
+                                <thead><tr className="border-b border-gray-700"><th className="text-left p-2">User</th><th className="text-left p-2">Role</th><th className="text-left p-2">Status</th></tr></thead>
+                                <tbody>{users.map(u => (<tr key={u.id} className="border-b border-gray-700 hover:bg-gray-700/50"><td className="p-2 flex items-center"><img src={u.photoURL || 'https://placehold.co/100x100/1f2937/4b5563?text=U'} className="w-8 h-8 rounded-full mr-2" /><span>{u.displayName}</span></td><td className="p-2"><RoleBadge role={u.role} className="text-xs" /></td><td className="p-2">{u.banned ? <span className="text-red-400">Banned</span> : <span className="text-green-400">Active</span>}</td></tr>))}</tbody>
+                            </table>
+                        </div>
+                    </InfoCard>
+                </>
+            );
         };
         
-        const UserProfile = ({ user, role, onRoleChange }) => {
-            const [showRoleSelector, setShowRoleSelector] = useState(!role);
-            const [selectedRole, setSelectedRole] = useState(role);
+        const RoleSelection = ({ user, onRoleSelected }) => {
             const [isSavingRole, setIsSavingRole] = useState(false);
 
             const handleRoleSelect = async (newRole) => {
@@ -288,44 +254,69 @@
                 setIsSavingRole(true);
                 try {
                     await db.collection('users').doc(user.uid).update({ role: newRole, roleSelected: true });
-                    setSelectedRole(newRole);
-                    setShowRoleSelector(false);
-                    onRoleChange(newRole);
+                    onRoleSelected(newRole);
                 } catch (error) { console.error("Error updating user role:", error); } 
                 finally { setIsSavingRole(false); }
             };
 
+            return (
+                <div className="text-center py-10">
+                    <h2 className="text-2xl font-bold text-white mb-6">Select Your Role</h2>
+                    <p className="text-gray-300 mb-8">Choose how you want to participate in SportSphere</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                        {userSelectableRoles.map(r => (
+                            <button key={r.id} onClick={() => handleRoleSelect(r.id)} disabled={isSavingRole} className="p-6 bg-gray-700 rounded-xl hover:bg-gray-600 transition-colors duration-200 text-left disabled:opacity-50 disabled:cursor-not-allowed">
+                                <div className="flex items-center space-x-3 mb-2"><span className="text-2xl">{roleIcons[r.id]}</span><h3 className="text-xl font-bold">{r.id}</h3></div>
+                                <p className="text-gray-300 text-sm">{r.desc}</p>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const UserProfile = ({ user, onRoleChange }) => {
+            const [profileData, setProfileData] = useState(null);
+            const [isLoading, setIsLoading] = useState(true);
+
+            useEffect(() => {
+                if (!user) return;
+                const unsubscribe = db.collection('users').doc(user.uid).onSnapshot(doc => {
+                    if (doc.exists) {
+                        setProfileData(doc.data());
+                    }
+                    setIsLoading(false);
+                });
+                return () => unsubscribe();
+            }, [user]);
+
+            const handleRoleSelected = (newRole) => {
+                setProfileData(prev => ({ ...prev, role: newRole }));
+                onRoleChange(newRole);
+            };
+
+            if (isLoading) return <div className="p-8 text-center"><LoadingSpinner /></div>;
+            if (!profileData) return <div className="p-8 text-center text-red-400">Could not load user profile.</div>;
+
             const renderProfileContent = () => {
-                if (showRoleSelector) {
-                    return (
-                        <div className="text-center py-10">
-                            <h2 className="text-2xl font-bold text-white mb-6">Select Your Role</h2>
-                            <p className="text-gray-300 mb-8">Choose how you want to participate in SportSphere</p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-                                {userSelectableRoles.map(r => (
-                                    <button key={r.id} onClick={() => handleRoleSelect(r.id)} disabled={isSavingRole} className="p-6 bg-gray-700 rounded-xl hover:bg-gray-600 transition-colors duration-200 text-left disabled:opacity-50 disabled:cursor-not-allowed">
-                                        <div className="flex items-center space-x-3 mb-2"><span className="text-2xl">{roleIcons[r.id]}</span><h3 className="text-xl font-bold">{r.id}</h3></div>
-                                        <p className="text-gray-300 text-sm">{r.desc}</p>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    );
+                if (!profileData.role) {
+                    return <RoleSelection user={user} onRoleSelected={handleRoleSelected} />;
                 }
-                switch (selectedRole) {
-                    case 'Player': return <PlayerProfile user={user} role={selectedRole} />;
-                    case 'Fan': return <FanProfile user={user} role={selectedRole} />;
-                    case 'Reporter': return <ReporterProfile user={user} role={selectedRole} />;
-                    case 'Analyst': return <AnalystProfile user={user} role={selectedRole} />;
-                    case 'Admin': return <AdminProfile user={user} role={selectedRole} />;
-                    default: return <FanProfile user={user} role={selectedRole || 'Fan'} />;
+                switch (profileData.role) {
+                    case 'Player': return <PlayerProfile user={user} profileData={profileData} />;
+                    case 'Fan': return <FanProfile user={user} profileData={profileData} />;
+                    case 'Reporter': return <ReporterProfile user={user} profileData={profileData} />;
+                    case 'Analyst': return <AnalystProfile user={user} profileData={profileData} />;
+                    case 'Admin': return <AdminProfile user={user} profileData={profileData} />;
+                    default: return <div className="p-8 text-center text-gray-400">Unknown role.</div>;
                 }
             };
+
             return (<div className="p-4 md:p-8"><div className="max-w-6xl mx-auto"><main className="bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8">{renderProfileContent()}</main></div></div>);
         };
 
         // --- Navigation and Main Content Components ---
-        const LandingPage = ({ onJoinCommunity }) => {
+        const LandingPage = () => {
             const [showLoginOptions, setShowLoginOptions] = useState(false);
             const [isLoggingIn, setIsLoggingIn] = useState(false);
             const handleGoogleLogin = async () => { setIsLoggingIn(true); try { const provider = new firebase.auth.GoogleAuthProvider(); await firebase.auth().signInWithPopup(provider); } catch (error) { console.error("Google Sign-In Error:", error); } finally { setIsLoggingIn(false); } };
@@ -334,38 +325,12 @@
             return (
                 <div className="relative w-full min-h-screen flex flex-col justify-center items-center text-center p-4 overflow-hidden" style={{ backgroundImage: 'url(https://placehold.co/1920x1080/000000/ffffff?text=SportSphere+Stadium)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
                     <div className="absolute inset-0 bg-black bg-opacity-70 backdrop-blur-md"></div>
-                    
                     <div className="relative z-10 text-white max-w-2xl mx-auto flex flex-col items-center">
                         <h1 className="text-4xl md:text-6xl font-extrabold mb-4">Welcome to <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-orange-500">SportSphere</span></h1>
                         <p className="text-lg md:text-xl mb-8 leading-relaxed">The ultimate social platform for sports fans, players, and experts. Connect, share, and experience sports like never before.</p>
-                        
-                        {!showLoginOptions ? (
-                            <button onClick={() => setShowLoginOptions(true)} className="flex items-center justify-center px-8 py-3 bg-cyan-500 rounded-full font-semibold text-lg shadow-lg hover:bg-cyan-600 transition-all duration-300 transform hover:scale-105">
-                                Join Community
-                            </button>
-                        ) : (
-                            <div className="bg-gray-800/80 rounded-xl p-8 backdrop-blur-sm w-full max-w-sm">
-                                <h2 className="text-2xl font-bold mb-6">Sign In</h2>
-                                <div className="space-y-4">
-                                    <button onClick={handleGoogleLogin} disabled={isLoggingIn} className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-white text-gray-800 rounded-full font-semibold hover:bg-gray-200 transition-colors duration-200 disabled:opacity-50">
-                                        <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                                        <span>Continue with Google</span>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                        {!showLoginOptions ? (<button onClick={() => setShowLoginOptions(true)} className="flex items-center justify-center px-8 py-3 bg-cyan-500 rounded-full font-semibold text-lg shadow-lg hover:bg-cyan-600 transition-all duration-300 transform hover:scale-105">Join Community</button>) : (<div className="bg-gray-800/80 rounded-xl p-8 backdrop-blur-sm w-full max-w-sm"><h2 className="text-2xl font-bold mb-6">Sign In</h2><div className="space-y-4"><button onClick={handleGoogleLogin} disabled={isLoggingIn} className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-white text-gray-800 rounded-full font-semibold hover:bg-gray-200 transition-colors duration-200 disabled:opacity-50"><svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg><span>Continue with Google</span></button></div></div>)}
                     </div>
-
-                    <div className="absolute bottom-4 left-4 z-10">
-                         <button 
-                            onClick={handleAdminLogin} 
-                            disabled={isLoggingIn} 
-                            className="h-12 w-12 flex items-center justify-center bg-gray-800/80 text-gray-400 rounded-full font-semibold hover:bg-gray-700 hover:text-white transition-colors duration-200 disabled:opacity-50"
-                            title="Admin Login"
-                         >
-                            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L4.257 19.743A1 1 0 012.843 18.33l6.002-6.001A6.002 6.002 0 0118 8zm-6 3a4 4 0 100-8 4 4 0 000 8z" clipRule="evenodd"></path></svg>
-                         </button>
-                    </div>
+                    <div className="absolute bottom-4 left-4 z-10"><button onClick={handleAdminLogin} disabled={isLoggingIn} className="h-12 w-12 flex items-center justify-center bg-gray-800/80 text-gray-400 rounded-full font-semibold hover:bg-gray-700 hover:text-white transition-colors duration-200 disabled:opacity-50" title="Admin Login"><svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L4.257 19.743A1 1 0 012.843 18.33l6.002-6.001A6.002 6.002 0 0118 8zm-6 3a4 4 0 100-8 4 4 0 000 8z" clipRule="evenodd"></path></svg></button></div>
                 </div>
             );
         };
@@ -386,23 +351,14 @@
             <aside className="hidden md:flex fixed top-0 left-0 h-full w-20 bg-gray-900 border-r border-gray-800 flex-col items-center py-6 space-y-4 z-50">
                 <div className="text-3xl font-bold text-cyan-500">S</div>
                 <nav className="flex flex-col items-center space-y-2 mt-8">
-                    {navigationItems.map(item => (
-                        <button key={item.id} onClick={() => setActiveTab(item.id)} className={`p-3 rounded-lg transition-colors duration-200 ${activeTab === item.id ? 'bg-cyan-500 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}`} title={item.label}>
-                            <span className="text-2xl">{item.icon}</span>
-                        </button>
-                    ))}
+                    {navigationItems.map(item => (<button key={item.id} onClick={() => setActiveTab(item.id)} className={`p-3 rounded-lg transition-colors duration-200 ${activeTab === item.id ? 'bg-cyan-500 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}`} title={item.label}><span className="text-2xl">{item.icon}</span></button>))}
                 </nav>
             </aside>
         );
 
         const BottomTabNavigation = ({ activeTab, setActiveTab, scrollDirection }) => (
             <nav className={`md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 bg-opacity-90 backdrop-blur-sm border-t border-gray-700 flex justify-around p-2 z-40 transition-transform duration-300 ${scrollDirection === 'down' ? 'translate-y-full' : 'translate-y-0'}`}>
-                {navigationItems.map(item => (
-                    <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors duration-200 ${activeTab === item.id ? 'text-cyan-400' : 'text-gray-400 hover:text-white'}`} title={item.label}>
-                        <span className="text-2xl">{item.icon}</span>
-                        <span className="text-xs">{item.label}</span>
-                    </button>
-                ))}
+                {navigationItems.map(item => (<button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors duration-200 ${activeTab === item.id ? 'text-cyan-400' : 'text-gray-400 hover:text-white'}`} title={item.label}><span className="text-2xl">{item.icon}</span><span className="text-xs">{item.label}</span></button>))}
             </nav>
         );
         
@@ -411,53 +367,20 @@
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" onClick={onClose}>
                     <div className="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-white">Settings</h2>
-                            <button onClick={onClose} className="text-gray-400 hover:text-white">&times;</button>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg"><label htmlFor="dark-mode" className="text-gray-200">Dark Mode</label><input type="checkbox" id="dark-mode" className="toggle" defaultChecked /></div>
-                            <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg"><label htmlFor="notifications" className="text-gray-200">Push Notifications</label><input type="checkbox" id="notifications" className="toggle" /></div>
-                            <button onClick={onSignOut} className="w-full mt-4 px-4 py-2 bg-red-600 rounded-lg text-white hover:bg-red-700 transition-colors duration-200">Sign Out</button>
-                        </div>
+                        <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold text-white">Settings</h2><button onClick={onClose} className="text-gray-400 hover:text-white">&times;</button></div>
+                        <div className="space-y-4"><div className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg"><label htmlFor="dark-mode" className="text-gray-200">Dark Mode</label><input type="checkbox" id="dark-mode" className="toggle" defaultChecked /></div><div className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg"><label htmlFor="notifications" className="text-gray-200">Push Notifications</label><input type="checkbox" id="notifications" className="toggle" /></div><button onClick={onSignOut} className="w-full mt-4 px-4 py-2 bg-red-600 rounded-lg text-white hover:bg-red-700 transition-colors duration-200">Sign Out</button></div>
                     </div>
                 </div>
             );
         };
         
-        // --- Main Section Components ---
-        const HomeSection = ({ role }) => (
-            <div className="p-4 md:p-8 text-white">
-                <h1 className="text-3xl font-bold mb-6">Home</h1>
-                <div className="bg-gray-800 rounded-lg p-6 mb-6">
-                    <h2 className="text-xl font-bold mb-2">Welcome back!</h2>
-                    <p className="text-gray-300">Here's what's happening in your sports world. Your role is: <span className="font-bold text-cyan-400">{role}</span></p>
-                </div>
-                {role === 'Player' && <div className="bg-blue-500/20 border border-blue-500 text-blue-300 rounded-lg p-4 mb-6">Player-specific content would appear here!</div>}
-                {role === 'Admin' && <div className="bg-red-500/20 border border-red-500 text-red-300 rounded-lg p-4 mb-6">Admin dashboard summary would appear here!</div>}
-                <SectionHeader title="Trending News" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="bg-gray-800 rounded-lg p-4">Yanga SC wins the derby!</div>
-                    <div className="bg-gray-800 rounded-lg p-4">LeBron passes another milestone.</div>
-                    <div className="bg-gray-800 rounded-lg p-4">Transfer window heats up in EPL.</div>
-                </div>
-            </div>
-        );
-        const LiveGames = () => (
-            <div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Live Games</h1><div className="space-y-4"><div className="bg-gray-800 rounded-lg p-4 flex justify-between items-center"><div><p>Simba SC vs Yanga SC</p><p className="text-sm text-gray-400">Football - Ligi Kuu</p></div><div className="text-right"><p className="text-2xl font-bold">2 - 1</p><span className="text-xs text-red-500">LIVE 78'</span></div></div><div className="bg-gray-800 rounded-lg p-4 flex justify-between items-center"><div><p>LA Lakers vs Boston Celtics</p><p className="text-sm text-gray-400">Basketball - NBA</p></div><div className="text-right"><p className="text-2xl font-bold">102 - 98</p><span className="text-xs text-gray-400">FINAL</span></div></div></div></div>
-        );
-        const MomentsSection = () => (
-            <div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Moments</h1><div className="grid grid-cols-2 md:grid-cols-4 gap-4">{[1,2,3,4,5,6,7,8].map(i => <div key={i} className="bg-gray-800 rounded-lg aspect-w-9 aspect-h-16 flex items-center justify-center"><p>Video {i}</p></div>)}</div></div>
-        );
-        const BettingSection = () => (
-            <div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Betting</h1><div className="bg-yellow-500/20 border border-yellow-500 text-yellow-300 rounded-lg p-4">Betting features are coming soon. Please gamble responsibly.</div></div>
-        );
-        const NewsSection = () => (
-            <div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">News Feed</h1><div className="space-y-4">{[{title: 'Simba Crowned Champions', source: 'The Citizen TZ'}, {title: 'Azam FC signs new striker', source: 'Mwananchi'}, {title: 'NBA Finals Preview', source: 'ESPN'}].map(n => <div key={n.title} className="bg-gray-800 rounded-lg p-4"><h3>{n.title}</h3><p className="text-sm text-gray-400">{n.source}</p></div>)}</div></div>
-        );
-        const ShopSection = () => (
-            <div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Shop</h1><div className="grid grid-cols-2 md:grid-cols-4 gap-6">{[{name: 'Simba SC Jersey', price: 'TSh 50,000'}, {name: 'Yanga SC Scarf', price: 'TSh 25,000'}, {name: 'Basketball', price: 'TSh 80,000'}, {name: 'Football Boots', price: 'TSh 150,000'}].map(p => <div key={p.name} className="bg-gray-800 rounded-lg p-4 text-center"><h3>{p.name}</h3><p className="text-cyan-400">{p.price}</p><button className="mt-2 w-full bg-cyan-500 text-white px-3 py-1 rounded-lg">Add to Cart</button></div>)}</div></div>
-        );
+        // --- Main Section Components (Placeholders) ---
+        const HomeSection = ({ role }) => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Home</h1><div className="bg-gray-800 rounded-lg p-6 mb-6"><h2 className="text-xl font-bold mb-2">Welcome back!</h2><p className="text-gray-300">Your current role is: <span className="font-bold text-cyan-400">{role}</span></p></div></div>);
+        const LiveGames = () => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Live Games</h1></div>);
+        const MomentsSection = () => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Moments</h1></div>);
+        const BettingSection = () => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Betting</h1></div>);
+        const NewsSection = () => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">News</h1></div>);
+        const ShopSection = () => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Shop</h1></div>);
 
         // --- Main App Component ---
         const App = () => {
@@ -474,8 +397,7 @@
                         const userDocRef = db.collection('users').doc(firebaseUser.uid);
                         const userDoc = await userDocRef.get();
                         if (userDoc.exists) {
-                            const userData = userDoc.data();
-                            setUserRole(userData.role || null);
+                            setUserRole(userDoc.data().role || null);
                         } else {
                              const isInitialAdmin = firebaseUser.email === 'davidmbazza@gmail.com';
                              const newUser = { uid: firebaseUser.uid, displayName: firebaseUser.displayName || 'New User', email: firebaseUser.email, photoURL: firebaseUser.photoURL, role: isInitialAdmin ? 'Admin' : null, roleSelected: isInitialAdmin, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
@@ -502,7 +424,6 @@
                     <TopNavigationBar scrollDirection={scrollDirection} onSettingsClick={() => setShowSettings(true)} user={user} />
                     <DesktopSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
                     <BottomTabNavigation activeTab={activeTab} setActiveTab={setActiveTab} scrollDirection={scrollDirection} />
-
                     <main className="pt-20">
                         {activeTab === 'home' && <HomeSection role={userRole} />}
                         {activeTab === 'live' && <LiveGames />}
@@ -510,9 +431,8 @@
                         {activeTab === 'betting' && <BettingSection />}
                         {activeTab === 'news' && <NewsSection />}
                         {activeTab === 'shop' && <ShopSection />}
-                        {activeTab === 'profile' && <UserProfile user={user} role={userRole} onRoleChange={setUserRole} />}
+                        {activeTab === 'profile' && <UserProfile user={user} onRoleChange={setUserRole} />}
                     </main>
-
                     <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} onSignOut={handleSignOut} />
                 </div>
             );
