@@ -480,7 +480,61 @@
             );
         };
         
-        const BettingSection = () => (<div className="p-4 md:p-8 text-white"><SectionHeader title="Betting" /><p className="text-gray-400">Betting features are under construction.</p></div>);
+        const BettingSection = () => {
+            const [odds, setOdds] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState(null);
+
+            useEffect(() => {
+                const fetchOdds = async () => {
+                    const apiKey = '1f3cdbd9camsh4bd965d34b4b5fbp15b38bjsn4e1ac06ecc2a';
+                    const url = 'https://odds-feed.p.rapidapi.com/api/v1/markets/feed?placing=LIVE&market_name=1X2&bet_type=BACK&page=0&event_ids=845%2C123%2C435%2C22%2C842%2C844%2C845&period=FULL_TIME_AND_OT';
+                    try {
+                        const response = await fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'x-rapidapi-host': 'odds-feed.p.rapidapi.com',
+                                'x-rapidapi-key': apiKey
+                            }
+                        });
+                        if (!response.ok) throw new Error(`API error! status: ${response.status}`);
+                        const data = await response.json();
+                        setOdds(data.data || []);
+                    } catch (e) {
+                        setError(e.message);
+                        console.error("Failed to fetch betting odds:", e);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                };
+                fetchOdds();
+            }, []);
+
+            if (isLoading) return <div className="p-8"><LoadingSpinner text="Fetching Live Odds..." /></div>;
+            if (error) return <ErrorMessage message={error} />;
+            
+            return (
+                <div className="p-4 md:p-8 text-white">
+                    <SectionHeader title="Live Betting Odds" />
+                    <div className="space-y-4">
+                        {odds.length > 0 ? odds.map(market => (
+                            <div key={market.market_id} className="bg-gray-800 rounded-xl p-4">
+                                <h4 className="font-bold text-lg">{market.event_name}</h4>
+                                <p className="text-sm text-gray-400">{market.market_name}</p>
+                                <div className="grid grid-cols-3 gap-4 mt-4">
+                                    {market.outcomes.map(outcome => (
+                                        <div key={outcome.outcome_id} className="bg-gray-700 p-3 rounded-lg text-center">
+                                            <p className="font-semibold">{outcome.outcome_name}</p>
+                                            <p className="text-cyan-400 text-xl font-bold">{outcome.odds.toFixed(2)}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )) : <p className="text-gray-400">No live betting markets available right now.</p>}
+                    </div>
+                </div>
+            );
+        };
 
         // --- Main App Component ---
         const App = () => {
