@@ -10,13 +10,12 @@
     <!-- PWA: Theme Color for browser UI -->
     <meta name="theme-color" content="#06B6D4">
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Firebase SDK (v8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
     <!-- React and Babel -->
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
@@ -37,92 +36,44 @@
         .toggle:checked::before { transform: translateX(1.25rem); }
         .moment-video-embed iframe { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="root"></div>
 
-    <!-- This script tag is crucial for enabling Firebase modular SDK -->
-    <script type="module">
-        // Import React and ReactDOM for Babel to use
-        window.React = React;
-        window.ReactDOM = ReactDOM;
-
-        // Import Firebase v9+ modular SDKs
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            onAuthStateChanged, 
-            signInWithPopup, 
-            GoogleAuthProvider, 
-            signOut,
-            signInWithEmailAndPassword,
-            signInWithCustomToken,
-            signInAnonymously
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            getDoc, 
-            setDoc, 
-            updateDoc, 
-            onSnapshot,
-            serverTimestamp 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-
-        // Make Firebase functions globally available for the Babel script
-        window.firebase = {
-            initializeApp,
-            getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, signInWithCustomToken, signInAnonymously,
-            getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp,
-            getStorage
-        };
-    </script>
-
     <script type="text/babel">
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCT9bFZUkQ25JUNhW00XnvUWMa1kO9fI0o",
+            authDomain: "sportysphere-pwa.firebaseapp.com",
+            projectId: "sportysphere-pwa",
+            storageBucket: "sportysphere-pwa.appspot.com",
+            messagingSenderId: "850598542865",
+            appId: "1:850598542865:web:d482a25411733391157bb0",
+            measurementId: "G-Q474YZP0BM"
+        };
+
+        // --- Initialize Firebase ---
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
         // --- React Hooks ---
         const { useState, useRef, useEffect, useMemo, useCallback } = React;
 
-        // --- Firebase Initialization (Modular SDK) ---
-        let app, auth, db, storage;
-        
-        try {
-            // Use environment variables provided by the platform for secure configuration
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-                // Fallback config for local development if needed.
-                // IMPORTANT: Replace with your actual Firebase config.
-                apiKey: "YOUR_API_KEY",
-                authDomain: "YOUR_AUTH_DOMAIN",
-                projectId: "YOUR_PROJECT_ID",
-                storageBucket: "YOUR_STORAGE_BUCKET",
-                messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-                appId: "YOUR_APP_ID"
-            };
-
-            app = firebase.initializeApp(firebaseConfig);
-            auth = firebase.getAuth(app);
-            db = firebase.getFirestore(app);
-            storage = firebase.getStorage(app);
-        } catch (error) {
-            console.error("Firebase initialization failed:", error);
-        }
-
-        // --- API Key Placeholders (IMPORTANT) ---
-        // For security, API keys should not be stored in frontend code.
-        // Use a backend proxy or serverless functions to make API calls.
-        const NEWS_API_KEY = 'c3740fda057d4a7da72346609fa07758'; // Replace with your NewsAPI key
-        const THESPORTSDB_API_KEY = '2'; // Replace with your TheSportsDB API key
-        const FOOTBALL_API_KEY = '110a8672debad7a839756e771715dc7d'; // Replace with your API-Football key
-        const SCOREBAT_API_URL = 'https://www.scorebat.com/video-api/v3/';
-        
         // --- Data & Configuration ---
         const navigationItems = [
           { id: 'home', label: 'Home', icon: '🏠' }, { id: 'live', label: 'Live Games', icon: '📊' },
-          { id: 'moments', label: 'Moments', icon: '🎥' }, { id: 'news', label: 'News', icon: '📰' }, 
-          { id: 'shop', label: 'Shop', icon: '🛒' }, { id: 'profile', label: 'Profile', icon: '👤' },
+          { id: 'moments', label: 'Moments', icon: '🎥' }, { id: 'betting', label: 'Betting', icon: '💰' },
+          { id: 'news', label: 'News', icon: '📰' }, { id: 'shop', label: 'Shop', icon: '🛒' },
+          { id: 'profile', label: 'Profile', icon: '👤' },
         ];
-        const roleIcons = { Fan: '👑', Player: '👕', Reporter: '📝', Analyst: '📈', Team: '🏟️', Sponsor: '💼', Advertiser: '🏷️', Referee: '📣', NewsChannel: '📺', Admin: '🔑', AIAdmin: '🤖' };
+        const roleIcons = { Fan: '👑', Player: '👕', Reporter: '📝', Analyst: '📈', Team: '🏟️', Sponsor: '💲', Advertiser: '🏷️', Referee: '📣', NewsChannel: '📺', Admin: '🔑', AIAdmin: '🤖' };
         const userSelectableRoles = [
             { id: 'Fan', desc: 'Follow teams, players, and share your passion for sports.' },
             { id: 'Player', desc: 'Showcase your skills, stats, and connect with fans.' },
@@ -132,22 +83,22 @@
 
         // --- Helper Hooks & Functions ---
         function useScrollDirection() {
-            const [scrollDirection, setScrollDirection] = useState(null);
-            const lastScrollY = useRef(0);
+          const [scrollDirection, setScrollDirection] = useState(null);
+          const lastScrollY = useRef(0);
 
-            useEffect(() => {
-                const updateScrollDirection = () => {
-                    const scrollY = window.scrollY;
-                    const direction = scrollY > lastScrollY.current ? "down" : "up";
-                    if (direction !== scrollDirection && (Math.abs(scrollY - lastScrollY.current) > 10)) {
-                        setScrollDirection(scrollY < 50 ? "up" : direction);
-                    }
-                    lastScrollY.current = scrollY > 0 ? scrollY : 0;
-                };
-                window.addEventListener("scroll", updateScrollDirection, { passive: true });
-                return () => window.removeEventListener("scroll", updateScrollDirection);
-            }, [scrollDirection]);
-            return scrollDirection;
+          useEffect(() => {
+            const updateScrollDirection = () => {
+              const scrollY = window.scrollY;
+              const direction = scrollY > lastScrollY.current ? "down" : "up";
+              if (direction !== scrollDirection && (Math.abs(scrollY - lastScrollY.current) > 10)) {
+                setScrollDirection(scrollY < 50 ? "up" : direction);
+              }
+              lastScrollY.current = scrollY > 0 ? scrollY : 0;
+            };
+            window.addEventListener("scroll", updateScrollDirection, { passive: true });
+            return () => window.removeEventListener("scroll", updateScrollDirection);
+          }, [scrollDirection]);
+          return scrollDirection;
         }
 
         // --- General UI Components ---
@@ -161,9 +112,9 @@
         const ProfileHeader = ({ user, profileData, onEdit }) => (
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
                 <div className="flex items-center space-x-6">
-                    <img src={profileData.photoURL || user.photoURL || `https://placehold.co/200x200/1f2937/4b5563?text=${user.displayName?.charAt(0) || 'U'}`} alt={`${user.displayName} profile`} className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-cyan-500 object-cover" />
+                    <img src={profileData.photo || user.photoURL || `https://placehold.co/200x200/1f2937/4b5563?text=${user.displayName?.charAt(0) || 'U'}`} alt={`${user.displayName} profile`} className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-cyan-500 object-cover" />
                     <div>
-                        <h1 className="text-3xl sm:text-4xl font-bold text-white">{profileData.displayName || user.displayName}</h1>
+                        <h1 className="text-3xl sm:text-4xl font-bold text-white">{profileData.name || user.displayName}</h1>
                         <p className="text-lg text-cyan-400">{profileData.role}</p>
                         {profileData.affiliation && <p className="text-md text-gray-300">{profileData.affiliation}</p>}
                     </div>
@@ -178,8 +129,7 @@
                 if (!user || !user.uid) return;
                 setIsSavingRole(true);
                 try {
-                    const userDocRef = firebase.doc(db, 'users', user.uid);
-                    await firebase.updateDoc(userDocRef, { role: newRole, roleSelected: true });
+                    await db.collection('users').doc(user.uid).update({ role: newRole, roleSelected: true });
                     onRoleSelected(newRole);
                 } catch (error) { console.error("Error updating user role:", error); } 
                 finally { setIsSavingRole(false); }
@@ -207,7 +157,8 @@
 
             useEffect(() => {
                 const fetchPlayerStats = async (playerName) => {
-                    const url = `https://www.thesportsdb.com/api/v1/json/${THESPORTSDB_API_KEY}/searchplayers.php?p=${encodeURIComponent(playerName)}`;
+                    const apiKey = '2'; // Free test key from TheSportsDB
+                    const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchplayers.php?p=${encodeURIComponent(playerName)}`;
                     try {
                         const response = await fetch(url);
                         const data = await response.json();
@@ -220,8 +171,8 @@
                         setIsLoading(false);
                     }
                 };
-                fetchPlayerStats(profileData.displayName || user.displayName);
-            }, [profileData.displayName, user.displayName]);
+                fetchPlayerStats(profileData.name || user.displayName);
+            }, [profileData.name, user.displayName]);
 
             return (
                 <>
@@ -250,12 +201,11 @@
 
             useEffect(() => {
                 if (!user) return;
-                const userDocRef = firebase.doc(db, 'users', user.uid);
-                const unsubscribe = firebase.onSnapshot(userDocRef, (doc) => {
-                    if (doc.exists()) {
+                const unsubscribe = db.collection('users').doc(user.uid).onSnapshot(doc => {
+                    if (doc.exists) {
                         const data = doc.data();
                         setProfileData(data);
-                        setEditData({ displayName: data.displayName || user.displayName, bio: data.bio || '', affiliation: data.affiliation || '' });
+                        setEditData({ name: data.name || user.displayName, bio: data.bio || '', affiliation: data.affiliation || '' });
                     }
                     setIsLoading(false);
                 });
@@ -263,13 +213,12 @@
             }, [user]);
 
             const handleRoleSelected = (newRole) => {
-                setProfileData(prev => ({ ...prev, role: newRole, roleSelected: true }));
+                setProfileData(prev => ({ ...prev, role: newRole }));
                 onRoleChange(newRole);
             };
 
             const handleEditSave = async () => {
-                const userDocRef = firebase.doc(db, 'users', user.uid);
-                await firebase.updateDoc(userDocRef, editData);
+                await db.collection('users').doc(user.uid).update(editData);
                 setIsEditing(false);
             };
 
@@ -277,7 +226,7 @@
             if (!profileData) return <ErrorMessage message="Could not load user profile." />;
 
             const renderProfileContent = () => {
-                if (!profileData.roleSelected) return <RoleSelection user={user} onRoleSelected={handleRoleSelected} />;
+                if (!profileData.role) return <RoleSelection user={user} onRoleSelected={handleRoleSelected} />;
                 switch (profileData.role) {
                     case 'Player': return <PlayerProfile user={user} profileData={profileData} onEdit={() => setIsEditing(true)} />;
                     default: return <ProfileHeader user={user} profileData={profileData} onEdit={() => setIsEditing(true)} />;
@@ -285,35 +234,37 @@
             };
 
             return (
-                <div className="max-w-6xl mx-auto">
-                    <main className="bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8">
-                        {renderProfileContent()}
-                    </main>
-                    {isEditing && (
-                        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[100]">
-                            <div className="bg-gray-800 rounded-xl p-6 w-11/12 max-w-lg">
-                                <h2 className="text-2xl font-bold mb-4">Edit Profile</h2>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300">Name</label>
-                                        <input type="text" value={editData.displayName} onChange={e => setEditData({...editData, displayName: e.target.value})} className="w-full p-2 bg-gray-700 rounded-md mt-1" />
+                <div className="p-4 md:p-8">
+                    <div className="max-w-6xl mx-auto">
+                        <main className="bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8">
+                            {renderProfileContent()}
+                        </main>
+                        {isEditing && (
+                            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[100]">
+                                <div className="bg-gray-800 rounded-xl p-6 w-11/12 max-w-lg">
+                                    <h2 className="text-2xl font-bold mb-4">Edit Profile</h2>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300">Name</label>
+                                            <input type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} className="w-full p-2 bg-gray-700 rounded-md mt-1" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300">Bio</label>
+                                            <textarea value={editData.bio} onChange={e => setEditData({...editData, bio: e.target.value})} className="w-full p-2 bg-gray-700 rounded-md mt-1" rows="3"></textarea>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300">Affiliation (Team/Organization)</label>
+                                            <input type="text" value={editData.affiliation} onChange={e => setEditData({...editData, affiliation: e.target.value})} className="w-full p-2 bg-gray-700 rounded-md mt-1" />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300">Bio</label>
-                                        <textarea value={editData.bio} onChange={e => setEditData({...editData, bio: e.target.value})} className="w-full p-2 bg-gray-700 rounded-md mt-1" rows="3"></textarea>
+                                    <div className="mt-6 flex justify-end space-x-4">
+                                        <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-gray-600 rounded-md">Cancel</button>
+                                        <button onClick={handleEditSave} className="px-4 py-2 bg-cyan-500 rounded-md">Save</button>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300">Affiliation (Team/Organization)</label>
-                                        <input type="text" value={editData.affiliation} onChange={e => setEditData({...editData, affiliation: e.target.value})} className="w-full p-2 bg-gray-700 rounded-md mt-1" />
-                                    </div>
-                                </div>
-                                <div className="mt-6 flex justify-end space-x-4">
-                                    <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-gray-600 rounded-md">Cancel</button>
-                                    <button onClick={handleEditSave} className="px-4 py-2 bg-cyan-500 rounded-md">Save</button>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             );
         };
@@ -322,17 +273,8 @@
         const LandingPage = () => {
             const [showLoginOptions, setShowLoginOptions] = useState(false);
             const [isLoggingIn, setIsLoggingIn] = useState(false);
-            const handleGoogleLogin = async () => { 
-                setIsLoggingIn(true); 
-                try { 
-                    const provider = new firebase.GoogleAuthProvider(); 
-                    await firebase.signInWithPopup(auth, provider); 
-                } catch (error) { 
-                    console.error("Google Sign-In Error:", error); 
-                } finally { 
-                    setIsLoggingIn(false); 
-                } 
-            };
+            const handleGoogleLogin = async () => { setIsLoggingIn(true); try { const provider = new firebase.auth.GoogleAuthProvider(); await firebase.auth().signInWithPopup(provider); } catch (error) { console.error("Google Sign-In Error:", error); } finally { setIsLoggingIn(false); } };
+            const handleAdminLogin = async () => { setIsLoggingIn(true); try { await firebase.auth().signInWithEmailAndPassword('davidmbazza@gmail.com', 'TEST123'); } catch (error) { alert("Admin login failed. Please check credentials."); } finally { setIsLoggingIn(false); } };
             
             return (
                 <div className="relative w-full min-h-screen flex flex-col justify-center items-center text-center p-4 overflow-hidden" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2970&auto=format&fit=crop)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
@@ -342,6 +284,7 @@
                         <p className="text-lg md:text-xl mb-8 leading-relaxed">The ultimate social platform for sports fans, players, and experts. Connect, share, and experience sports like never before.</p>
                         {!showLoginOptions ? (<button onClick={() => setShowLoginOptions(true)} className="flex items-center justify-center px-8 py-3 bg-cyan-500 rounded-full font-semibold text-lg shadow-lg hover:bg-cyan-600 transition-all duration-300 transform hover:scale-105">Join Community</button>) : (<div className="bg-gray-800/80 rounded-xl p-8 backdrop-blur-sm w-full max-w-sm"><h2 className="text-2xl font-bold mb-6">Sign In</h2><div className="space-y-4"><button onClick={handleGoogleLogin} disabled={isLoggingIn} className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-white text-gray-800 rounded-full font-semibold hover:bg-gray-200 transition-colors duration-200 disabled:opacity-50"><svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg><span>Continue with Google</span></button></div></div>)}
                     </div>
+                    <div className="absolute bottom-4 left-4 z-10"><button onClick={handleAdminLogin} disabled={isLoggingIn} className="h-12 w-12 flex items-center justify-center bg-gray-800/80 text-gray-400 rounded-full font-semibold hover:bg-gray-700 hover:text-white transition-colors duration-200 disabled:opacity-50" title="Admin Login"><svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L4.257 19.743A1 1 0 012.843 18.33l6.002-6.001A6.002 6.002 0 0118 8zm-6 3a4 4 0 100-8 4 4 0 000 8z" clipRule="evenodd"></path></svg></button></div>
                 </div>
             );
         };
@@ -352,7 +295,7 @@
             <div className="hidden md:flex items-center space-x-4"><input type="text" placeholder="Search SportSphere..." className="bg-gray-800 border border-gray-700 rounded-full px-4 py-1.5 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-cyan-500" /></div>
             <div className="flex items-center space-x-2 sm:space-x-4">
               <button className="text-gray-400 hover:text-white p-2 rounded-full"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg></button>
-              <button onClick={onSettingsClick} className="text-gray-400 hover:text-white p-2 rounded-full"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></button>
+              <button onClick={onSettingsClick} className="text-gray-400 hover:text-white p-2 rounded-full"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></button>
               {user && <img src={user.photoURL || `https://placehold.co/40x40/1f2937/4b5563?text=${user.displayName?.charAt(0) || 'U'}`} className="w-8 h-8 rounded-full" alt="User avatar" />}
             </div>
           </header>
@@ -394,11 +337,13 @@
 
             useEffect(() => {
                 const fetchGames = async () => {
+                    const apiKey = '110a8672debad7a839756e771715dc7d';
                     const url = 'https://v3.football.api-sports.io/fixtures?live=all';
+                    
                     try {
                         const response = await fetch(url, {
                             method: 'GET',
-                            headers: { 'x-rapidapi-key': FOOTBALL_API_KEY, 'x-rapidapi-host': 'v3.football.api-sports.io' }
+                            headers: { 'x-rapidapi-key': apiKey, 'x-rapidapi-host': 'v3.football.api-sports.io' }
                         });
                         if (!response.ok) throw new Error(`API error! status: ${response.status}`);
                         const data = await response.json();
@@ -417,7 +362,7 @@
                 fetchGames();
             }, []);
 
-            if (isLoading) return <LoadingSpinner text="Fetching Live Games..." />;
+            if (isLoading) return <div className="p-8"><LoadingSpinner text="Fetching Live Games..." /></div>;
             if (error) return <ErrorMessage message={error} />;
 
             return (
@@ -449,8 +394,9 @@
 
             useEffect(() => {
                 const fetchVideoMoments = async () => {
+                    const url = 'https://www.scorebat.com/video-api/v3/';
                     try {
-                        const response = await fetch(SCOREBAT_API_URL);
+                        const response = await fetch(url);
                         if (!response.ok) throw new Error(`API error! status: ${response.status}`);
                         const data = await response.json();
                         if (data.response && data.response.length > 0) {
@@ -474,8 +420,8 @@
                 fetchVideoMoments();
             }, []);
 
-            if (isLoading) return <div className="h-screen flex items-center justify-center"><LoadingSpinner text="Fetching Latest Highlights..." /></div>;
-            if (error) return <div className="h-screen flex items-center justify-center"><ErrorMessage message={error} /></div>;
+            if (isLoading) return <div className="p-8"><LoadingSpinner text="Fetching Latest Highlights..." /></div>;
+            if (error) return <ErrorMessage message={error} />;
             
             return (
                 <div className="h-screen w-full overflow-y-scroll snap-y snap-mandatory">
@@ -499,7 +445,8 @@
 
             useEffect(() => {
                 const fetchNews = async () => {
-                    const url = `https://newsapi.org/v2/top-headlines?country=us&category=sports&apiKey=${NEWS_API_KEY}`;
+                    const apiKey = 'c3740fda057d4a7da72346609fa07758';
+                    const url = `https://newsapi.org/v2/top-headlines?country=us&category=sports&apiKey=${apiKey}`;
                     try {
                         const response = await fetch(url);
                         if (!response.ok) throw new Error(`API error! status: ${response.status}`);
@@ -515,7 +462,7 @@
                 fetchNews();
             }, []);
 
-            if (isLoading) return <LoadingSpinner text="Fetching News..." />;
+            if (isLoading) return <div className="p-8"><LoadingSpinner text="Fetching News..." /></div>;
             if (error) return <ErrorMessage message={error} />;
 
             return (
@@ -558,7 +505,7 @@
                 fetchProducts();
             }, []);
 
-            if (isLoading) return <LoadingSpinner text="Loading Products..." />;
+            if (isLoading) return <div className="p-8"><LoadingSpinner text="Loading Products..." /></div>;
             if (error) return <ErrorMessage message={error} />;
 
             return (
@@ -575,6 +522,62 @@
                 </div>
             );
         };
+        
+        const BettingSection = () => {
+            const [odds, setOdds] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState(null);
+
+            useEffect(() => {
+                const fetchOdds = async () => {
+                    const apiKey = '1f3cdbd9camsh4bd965d34b4b5fbp15b38bjsn4e1ac06ecc2a';
+                    const url = 'https://odds-feed.p.rapidapi.com/api/v1/markets/feed?placing=LIVE&market_name=1X2&bet_type=BACK&page=0&event_ids=845%2C123%2C435%2C22%2C842%2C844%2C845&period=FULL_TIME_AND_OT';
+                    try {
+                        const response = await fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'x-rapidapi-host': 'odds-feed.p.rapidapi.com',
+                                'x-rapidapi-key': apiKey
+                            }
+                        });
+                        if (!response.ok) throw new Error(`API error! status: ${response.status}`);
+                        const data = await response.json();
+                        setOdds(data.data || []);
+                    } catch (e) {
+                        setError(e.message);
+                        console.error("Failed to fetch betting odds:", e);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                };
+                fetchOdds();
+            }, []);
+
+            if (isLoading) return <div className="p-8"><LoadingSpinner text="Fetching Live Odds..." /></div>;
+            if (error) return <ErrorMessage message={error} />;
+            
+            return (
+                <div className="p-4 md:p-8 text-white">
+                    <SectionHeader title="Live Betting Odds" />
+                    <div className="space-y-4">
+                        {odds.length > 0 ? odds.map(market => (
+                            <div key={market.market_id} className="bg-gray-800 rounded-xl p-4">
+                                <h4 className="font-bold text-lg">{market.event_name}</h4>
+                                <p className="text-sm text-gray-400">{market.market_name}</p>
+                                <div className="grid grid-cols-3 gap-4 mt-4">
+                                    {market.outcomes.map(outcome => (
+                                        <div key={outcome.outcome_id} className="bg-gray-700 p-3 rounded-lg text-center">
+                                            <p className="font-semibold">{outcome.outcome_name}</p>
+                                            <p className="text-cyan-400 text-xl font-bold">{outcome.odds.toFixed(2)}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )) : <p className="text-gray-400">No live betting markets available right now.</p>}
+                    </div>
+                </div>
+            );
+        };
 
         // --- Main App Component ---
         const App = () => {
@@ -586,42 +589,16 @@
             const scrollDirection = useScrollDirection();
 
             useEffect(() => {
-                if (!auth) {
-                    setIsLoadingUser(false);
-                    return;
-                };
-
-                const handleAuth = async () => {
-                    try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await firebase.signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await firebase.signInAnonymously(auth);
-                        }
-                    } catch (error) {
-                        console.error("Authentication error:", error);
-                    }
-                };
-
-                handleAuth();
-
-                const unsubscribe = firebase.onAuthStateChanged(auth, async (firebaseUser) => {
+                const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
                     if (firebaseUser) {
-                        const userDocRef = firebase.doc(db, 'users', firebaseUser.uid);
-                        const userDoc = await firebase.getDoc(userDocRef);
-                        if (userDoc.exists()) {
+                        const userDocRef = db.collection('users').doc(firebaseUser.uid);
+                        const userDoc = await userDocRef.get();
+                        if (userDoc.exists) {
                             setUserRole(userDoc.data().role || null);
                         } else {
-                            const newUser = { 
-                                uid: firebaseUser.uid, 
-                                displayName: firebaseUser.displayName || 'New User', 
-                                email: firebaseUser.email, 
-                                photoURL: firebaseUser.photoURL, 
-                                role: null, 
-                                roleSelected: false, 
-                                createdAt: firebase.serverTimestamp() 
-                            };
-                            await firebase.setDoc(userDocRef, newUser, { merge: true });
+                             const isInitialAdmin = firebaseUser.email === 'davidmbazza@gmail.com';
+                             const newUser = { uid: firebaseUser.uid, displayName: firebaseUser.displayName || 'New User', email: firebaseUser.email, photoURL: firebaseUser.photoURL, role: isInitialAdmin ? 'Admin' : null, roleSelected: isInitialAdmin, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                            await userDocRef.set(newUser, { merge: true });
                             setUserRole(newUser.role);
                         }
                         setUser(firebaseUser);
@@ -634,60 +611,27 @@
                 return () => unsubscribe();
             }, []);
 
-            const handleSignOut = async () => { 
-                try { 
-                    await firebase.signOut(auth); 
-                    setShowSettings(false); 
-                } catch (error) { 
-                    console.error("Error signing out:", error); 
-                } 
-            };
-            
-            const MainLayout = ({ children }) => (
+            const handleSignOut = async () => { try { await auth.signOut(); setShowSettings(false); } catch (error) { console.error("Error signing out:", error); } };
+
+            if (isLoadingUser) return <LoadingSpinner />;
+            if (!user) return <LandingPage />;
+
+            return (
                 <div className="min-h-screen bg-gray-900 text-white pb-20 md:pb-0 md:pl-20">
                     <TopNavigationBar scrollDirection={scrollDirection} onSettingsClick={() => setShowSettings(true)} user={user} />
                     <DesktopSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
                     <BottomTabNavigation activeTab={activeTab} setActiveTab={setActiveTab} scrollDirection={scrollDirection} />
-                    <main className="pt-20 p-4 md:p-8">
-                        {children}
+                    <main className="pt-20">
+                        {activeTab === 'home' && <HomeSection role={userRole} />}
+                        {activeTab === 'live' && <LiveGames />}
+                        {activeTab === 'moments' && <MomentsSection />}
+                        {activeTab === 'betting' && <BettingSection />}
+                        {activeTab === 'news' && <NewsSection />}
+                        {activeTab === 'shop' && <ShopSection />}
+                        {activeTab === 'profile' && <UserProfile user={user} onRoleChange={setUserRole} />}
                     </main>
                     <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} onSignOut={handleSignOut} />
                 </div>
-            );
-
-            if (isLoadingUser) return <div className="h-screen flex items-center justify-center"><LoadingSpinner text="Authenticating..." /></div>;
-            if (!user) return <LandingPage />;
-            
-            // --- Content Rendering Logic ---
-            const renderContent = () => {
-                switch (activeTab) {
-                    case 'home': return <HomeSection role={userRole} />;
-                    case 'live': return <LiveGames />;
-                    case 'news': return <NewsSection />;
-                    case 'shop': return <ShopSection />;
-                    case 'profile': return <UserProfile user={user} onRoleChange={setUserRole} />;
-                    // The 'moments' tab is handled outside this switch to allow for a different layout
-                    default: return <HomeSection role={userRole} />;
-                }
-            };
-            
-            // Special handling for full-screen pages like Moments
-            if (activeTab === 'moments') {
-                return (
-                     <div className="h-screen w-screen bg-black">
-                        <TopNavigationBar scrollDirection="up" onSettingsClick={() => setShowSettings(true)} user={user} />
-                        <DesktopSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <MomentsSection />
-                        <BottomTabNavigation activeTab={activeTab} setActiveTab={setActiveTab} scrollDirection="up" />
-                        <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} onSignOut={handleSignOut} />
-                    </div>
-                );
-            }
-
-            return (
-                <MainLayout>
-                    {renderContent()}
-                </MainLayout>
             );
         };
 
