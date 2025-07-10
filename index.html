@@ -63,7 +63,7 @@
         const storage = firebase.storage();
 
         // --- React Hooks ---
-        const { useState, useRef, useEffect } = React;
+        const { useState, useRef, useEffect, useMemo } = React;
 
         // --- Data & Configuration ---
         const navigationItems = [
@@ -80,6 +80,38 @@
             { id: 'Reporter', desc: 'Share news, interviews, and insights about the sports world.' },
             { id: 'Analyst', desc: 'Provide data-driven insights and predictions.' },
         ];
+        
+        // --- REALISTIC MOCK DATA ---
+        const MOCK_DATA = {
+            players: {
+                'clatous-chama': { name: 'Clatous Chama', affiliation: 'Simba SC', photo: 'https://img.a.transfermarkt.technology/portrait/header/238960-1698405583.jpg?lm=1', bio: 'Zambian professional footballer who plays as an attacking midfielder for Simba S.C. and the Zambia national team.' },
+                'feisal-salum': { name: 'Feisal Salum', affiliation: 'Azam FC', photo: 'https://azamfc.co.tz/wp-content/uploads/2023/07/FEISAL-ABDALLAH-SALUM-1-1-scaled.jpg', bio: 'Tanzanian professional footballer who plays as a midfielder for Azam FC and the Tanzania national team.' },
+                'stephane-aziz-ki': { name: 'Stéphane Aziz Ki', affiliation: 'Yanga SC', photo: 'https://www.unafut.com/wp-content/uploads/2022/08/STEPHANE-AZIZ-KI.png', bio: 'Burkinabé professional footballer who plays as an attacking midfielder for Young Africans S.C. and the Burkina Faso national team.' },
+                'lionel-messi': { name: 'Lionel Messi', affiliation: 'Inter Miami CF', photo: 'https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg', bio: 'Argentine professional footballer who plays as a forward for and captains both Major League Soccer club Inter Miami and the Argentina national team.' },
+                'cristiano-ronaldo': { name: 'Cristiano Ronaldo', affiliation: 'Al Nassr FC', photo: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Cristiano_Ronaldo_playing_for_Al_Nassr_FC_against_Persepolis%2C_2023-09-19_%28cropped%29.jpg', bio: 'Portuguese professional footballer who plays as a forward for and captains both Saudi Pro League club Al Nassr and the Portugal national team.' },
+            },
+            teams: {
+                'simba-sc': { name: 'Simba SC', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Simba_S.C._logo.svg/1200px-Simba_S.C._logo.svg.png' },
+                'yanga-sc': { name: 'Yanga SC', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/e7/Young_Africans_S.C._logo.svg/1200px-Young_Africans_S.C._logo.svg.png' },
+                'azam-fc': { name: 'Azam FC', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/a/a3/Azam_FC.svg/1200px-Azam_FC.svg.png' },
+            },
+            news: [
+                { id: 1, type: 'breaking', category: 'NBC Premier League', title: 'Kariakoo Derby: Simba vs Yanga Ends in a Thrilling Draw!', source: 'Azam TV', time: '1h ago', views: '25.6K' },
+                { id: 2, type: 'regular', category: 'La Liga', title: 'Messi Scores Brace in Inter Miami Win', source: 'ESPN', time: '3h ago', views: '102K' },
+                { id: 3, type: 'rumor', category: 'Transfers', title: 'Azam FC Eyeing Ugandan Striker for Next Season', source: 'Mwanaspoti', time: '5h ago', views: '12K' },
+                { id: 4, type: 'regular', category: 'UCL', title: 'Ronaldo Leads Al Nassr to Victory in Asian Champions League', source: 'Sky Sports', time: '8h ago', views: '88K' },
+            ],
+            games: [
+                { id: 1, league: 'NBC Premier League', team1Name: 'Simba SC', team2Name: 'Yanga SC', score1: 1, score2: 1, time: "FT", status: 'Finished', team1Logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Simba_S.C._logo.svg/1200px-Simba_S.C._logo.svg.png', team2Logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/e7/Young_Africans_S.C._logo.svg/1200px-Young_Africans_S.C._logo.svg.png' },
+                { id: 2, league: 'NBC Premier League', team1Name: 'Azam FC', team2Name: 'Coastal Union', score1: 2, score2: 0, time: "LIVE 82'", status: 'Live', team1Logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/a/a3/Azam_FC.svg/1200px-Azam_FC.svg.png', team2Logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f5/Coastal_Union_logo.svg/1200px-Coastal_Union_logo.svg.png' },
+                { id: 3, league: 'La Liga', team1Name: 'Real Madrid', team2Name: 'FC Barcelona', time: "Tomorrow 22:00", status: 'Upcoming', team1Logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/56/Real_Madrid_CF.svg/1200px-Real_Madrid_CF.svg.png', team2Logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/47/FC_Barcelona_%28crest%29.svg/1200px-FC_Barcelona_%28crest%29.svg.png' },
+            ],
+            moments: [
+                { id: 1, type: 'video', mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', user: 'SimbaHighlights', caption: 'All goals from the Kariakoo Derby! What a match! 🔥', likes: '15k', comments: [] },
+                { id: 2, type: 'image', mediaUrl: 'https://dailynews.co.tz/wp-content/uploads/2023/04/simba-yanga.jpg', user: 'TanzaniaFootball', caption: 'The atmosphere at the Kariakoo Derby was electric! 🇹🇿', likes: '22k', comments: [] },
+                { id: 3, type: 'video', mediaUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4', user: 'MessiMagic', caption: 'Another incredible free-kick from the GOAT! 🐐', likes: '1.2M', comments: [] },
+            ]
+        };
 
         // --- Helper Hooks & Functions ---
         const getRoleColorClass = (role) => `text-${roleColors[role] || 'gray-400'} border-${roleColors[role] || 'gray-400'}`;
@@ -110,9 +142,9 @@
         const ProfileHeader = ({ user, profileData }) => (
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
                 <div className="flex items-center space-x-6">
-                    <img src={user.photoURL || `https://placehold.co/200x200/1f2937/4b5563?text=${user.displayName?.charAt(0) || 'U'}`} alt={`${user.displayName} profile`} className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-gray-600" />
+                    <img src={profileData.photo || user.photoURL || `https://placehold.co/200x200/1f2937/4b5563?text=${user.displayName?.charAt(0) || 'U'}`} alt={`${user.displayName} profile`} className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-gray-600 object-cover" />
                     <div>
-                        <h1 className="text-3xl sm:text-4xl font-bold text-white">{user.displayName || 'User'}</h1>
+                        <h1 className="text-3xl sm:text-4xl font-bold text-white">{profileData.name || user.displayName}</h1>
                         <p className="text-lg text-cyan-400">{profileData.role}</p>
                         {profileData.affiliation && <p className="text-md text-gray-300">{profileData.affiliation}</p>}
                     </div>
@@ -253,7 +285,18 @@
                 if (!user || !user.uid) return;
                 setIsSavingRole(true);
                 try {
-                    await db.collection('users').doc(user.uid).update({ role: newRole, roleSelected: true });
+                    // Add default data based on role
+                    let roleSpecificData = {};
+                    const selectedRoleInfo = MOCK_DATA.players[Object.keys(MOCK_DATA.players)[0]]; // Just as an example
+                    if(newRole === 'Player') {
+                        roleSpecificData = { affiliation: 'Free Agent', bio: 'A rising star in the world of sports.', photo: selectedRoleInfo.photo };
+                    } else if (newRole === 'Reporter') {
+                        roleSpecificData = { affiliation: 'Independent Journalist', bio: 'Covering the latest stories and breaking news.' };
+                    } else if (newRole === 'Analyst') {
+                        roleSpecificData = { affiliation: 'Sports Analysis', bio: 'Providing data-driven insights.' };
+                    }
+
+                    await db.collection('users').doc(user.uid).update({ role: newRole, roleSelected: true, ...roleSpecificData });
                     onRoleSelected(newRole);
                 } catch (error) { console.error("Error updating user role:", error); } 
                 finally { setIsSavingRole(false); }
@@ -323,8 +366,8 @@
             const handleAdminLogin = async () => { setIsLoggingIn(true); try { await firebase.auth().signInWithEmailAndPassword('davidmbazza@gmail.com', 'TEST123'); } catch (error) { console.error("Admin Sign-In Error:", error); } finally { setIsLoggingIn(false); } };
             
             return (
-                <div className="relative w-full min-h-screen flex flex-col justify-center items-center text-center p-4 overflow-hidden" style={{ backgroundImage: 'url(https://placehold.co/1920x1080/000000/ffffff?text=SportSphere+Stadium)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
-                    <div className="absolute inset-0 bg-black bg-opacity-70 backdrop-blur-md"></div>
+                <div className="relative w-full min-h-screen flex flex-col justify-center items-center text-center p-4 overflow-hidden" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2970&auto=format&fit=crop)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                    <div className="absolute inset-0 bg-black bg-opacity-70 backdrop-blur-sm"></div>
                     <div className="relative z-10 text-white max-w-2xl mx-auto flex flex-col items-center">
                         <h1 className="text-4xl md:text-6xl font-extrabold mb-4">Welcome to <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-orange-500">SportSphere</span></h1>
                         <p className="text-lg md:text-xl mb-8 leading-relaxed">The ultimate social platform for sports fans, players, and experts. Connect, share, and experience sports like never before.</p>
@@ -374,13 +417,80 @@
             );
         };
         
-        // --- Main Section Components (Placeholders) ---
-        const HomeSection = ({ role }) => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Home</h1><div className="bg-gray-800 rounded-lg p-6 mb-6"><h2 className="text-xl font-bold mb-2">Welcome back!</h2><p className="text-gray-300">Your current role is: <span className="font-bold text-cyan-400">{role}</span></p></div></div>);
-        const LiveGames = () => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Live Games</h1></div>);
-        const MomentsSection = () => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Moments</h1></div>);
-        const BettingSection = () => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Betting</h1></div>);
-        const NewsSection = () => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">News</h1></div>);
-        const ShopSection = () => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Shop</h1></div>);
+        // --- Main Section Components ---
+        const HomeSection = ({ role }) => {
+            const feedItems = useMemo(() => [
+                { type: 'game', ...MOCK_DATA.games[1] },
+                { type: 'news', ...MOCK_DATA.news[0] },
+                { type: 'post', user: MOCK_DATA.players['lionel-messi'], text: 'Great team win today! On to the next one. 💪 #InterMiamiCF', imageUrl: 'https://assets.goal.com/images/v3/blt26948b49a2b536a0/GOAL_-_Blank_WEB_-_Facebook_-_2024-05-19T093347.469.jpg?auto=webp&format=pjpg&width=1080&quality=60' },
+                { type: 'news', ...MOCK_DATA.news[1] },
+                { type: 'post', user: MOCK_DATA.players['clatous-chama'], text: 'Tough match but we fought hard. Thanks to the fans for the amazing support! #NguvuMoja', imageUrl: 'https://images.mwananchi.co.tz/mbwana-samatta-na-clatous-chama-1690103774-1500x998.jpg' },
+            ], []);
+
+            return (
+                <div className="p-4 md:p-8 text-white">
+                    <div className="max-w-2xl mx-auto">
+                        <h1 className="text-3xl font-bold mb-6">Home Feed</h1>
+                        <div className="space-y-6">
+                            {feedItems.map((item, index) => {
+                                if (item.type === 'game') return <LiveGameCard key={`feed-${index}`} game={item} />;
+                                if (item.type === 'news') return <NewsArticleCard key={`feed-${index}`} article={item} />;
+                                if (item.type === 'post') return <FeedPostCard key={`feed-${index}`} post={item} />;
+                                return null;
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const LiveGameCard = ({ game }) => (
+          <div className="bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-700">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-sm font-semibold text-gray-300">{game.league}</span>
+              <span className={`px-2 py-1 text-white text-xs font-bold rounded-md ${game.status === 'Live' ? 'bg-red-600' : 'bg-gray-600'}`}>{game.status}</span>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center"><div className="flex items-center space-x-3"><img src={game.team1Logo} className="w-8 h-8 object-contain" /><span className="font-semibold text-white text-lg">{game.team1Name}</span></div><span className="font-bold text-2xl text-white">{game.score1}</span></div>
+              <div className="flex justify-between items-center"><div className="flex items-center space-x-3"><img src={game.team2Logo} className="w-8 h-8 object-contain" /><span className="font-semibold text-white text-lg">{game.team2Name}</span></div><span className="font-bold text-2xl text-white">{game.score2}</span></div>
+            </div>
+            <div className="text-center text-sm text-gray-400 mt-3">{game.time}</div>
+          </div>
+        );
+
+        const NewsArticleCard = ({ article }) => (
+          <div className="bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-700">
+            <div className="flex items-center space-x-2 mb-2"><span className={`px-2 py-0.5 text-white text-xs font-bold rounded-md ${article.type === 'breaking' ? 'bg-red-600' : 'bg-gray-700'}`}>{article.category}</span></div>
+            <h3 className="text-lg font-bold mb-1 text-white">{article.title}</h3>
+            <p className="text-sm text-gray-400">{article.source} · {article.time}</p>
+          </div>
+        );
+
+        const FeedPostCard = ({ post }) => (
+            <div className="bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-700">
+                <div className="flex items-center space-x-3 mb-3">
+                    <img src={post.user.photo} className="w-10 h-10 rounded-full object-cover" />
+                    <div>
+                        <p className="font-semibold text-white">{post.user.name}</p>
+                        <p className="text-xs text-gray-400">{post.user.affiliation}</p>
+                    </div>
+                </div>
+                <p className="text-gray-300 text-sm mb-3">{post.text}</p>
+                {post.imageUrl && <img src={post.imageUrl} className="w-full h-auto object-cover rounded-lg" />}
+            </div>
+        );
+
+        const LiveGames = () => (
+            <div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Fixtures & Live Scores</h1><div className="space-y-4">{MOCK_DATA.games.map(game => <LiveGameCard key={game.id} game={game} />)}</div></div>
+        );
+        const MomentsSection = () => (
+            <div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Moments</h1><div className="grid grid-cols-2 md:grid-cols-4 gap-4">{MOCK_DATA.moments.map(moment => <div key={moment.id} className="bg-gray-800 rounded-lg aspect-w-9 aspect-h-16 flex items-center justify-center overflow-hidden"><img src={moment.mediaUrl} className="w-full h-full object-cover" /></div>)}</div></div>
+        );
+        const BettingSection = () => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Betting</h1><p className="text-gray-400">Betting features coming soon.</p></div>);
+        const NewsSection = () => (
+            <div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">News Feed</h1><div className="space-y-4">{MOCK_DATA.news.map(article => <NewsArticleCard key={article.id} article={article} />)}</div></div>
+        );
+        const ShopSection = () => (<div className="p-4 md:p-8 text-white"><h1 className="text-3xl font-bold mb-6">Shop</h1><p className="text-gray-400">Shop features coming soon.</p></div>);
 
         // --- Main App Component ---
         const App = () => {
@@ -401,7 +511,7 @@
                         } else {
                              const isInitialAdmin = firebaseUser.email === 'davidmbazza@gmail.com';
                              const newUser = { uid: firebaseUser.uid, displayName: firebaseUser.displayName || 'New User', email: firebaseUser.email, photoURL: firebaseUser.photoURL, role: isInitialAdmin ? 'Admin' : null, roleSelected: isInitialAdmin, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-                            await userDocRef.set(newUser);
+                            await userDocRef.set(newUser, { merge: true });
                             setUserRole(newUser.role);
                         }
                         setUser(firebaseUser);
