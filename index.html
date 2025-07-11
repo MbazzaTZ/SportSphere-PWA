@@ -11,11 +11,34 @@
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- Firebase SDKs (Updated to v11.6.1 modular imports) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged, 
+            GoogleAuthProvider, 
+            RecaptchaVerifier, 
+            signInWithPhoneNumber, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            setDoc, 
+            collection, 
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Expose Firebase modules globally for Babel to pick up in the React script
+        window.firebaseApp = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, createUserWithEmailAndPassword, signInWithEmailAndPassword };
+        window.firebaseFirestore = { getFirestore, doc, getDoc, setDoc, collection, serverTimestamp };
+    </script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -51,18 +74,23 @@
         const { useState, useEffect, useMemo } = React;
 
         // --- Firebase Initialization ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCT9bFZUkQ25JUNhW00XnvUWMa1kO9fI0o",
-            authDomain: "sportysphere-pwa.firebaseapp.com",
-            projectId: "sportysphere-pwa",
-            storageBucket: "sportysphere-pwa.appspot.com",
-            messagingSenderId: "850598542865",
-            appId: "1:850598542865:web:d482a25411733391157bb0",
-            measurementId: "G-Q474YZP0BM"
-        };
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        // MANDATORY: Use __firebase_config provided by the Canvas environment
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        // MANDATORY: Use __app_id provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        let app, auth, db;
+
+        // Initialize Firebase and set up auth listener
+        useEffect(() => {
+            // Initialize Firebase app only once
+            if (!app) {
+                app = window.firebaseApp.initializeApp(firebaseConfig);
+                auth = window.firebaseApp.getAuth(app);
+                db = window.firebaseFirestore.getFirestore(app);
+            }
+        }, []);
+
 
         // --- MOCK DATA (Used as fallback or for sections not yet connected to APIs) ---
         const mockData = {
@@ -73,17 +101,17 @@
                 stats: { likes: Math.floor(Math.random() * 100), comments: Math.floor(Math.random() * 20) }
             })),
             playersForPolls: {
-              'Football': [
-                  { id: 'player1', name: 'Striker Sam', initialVotes: 120 },
-                  { id: 'player2', name: 'Midfield Maestro', initialVotes: 90 },
-                  { id: 'player3', name: 'Goalie Greg', initialVotes: 70 }
-              ],
-              'Basketball': [
-                  { id: 'player4', name: 'Dunking Dave', initialVotes: 150 },
-                  { id: 'player5', name: 'Point Guard Pete', initialVotes: 110 },
-                  { id: 'player6', name: 'Rebounding Ron', initialVotes: 80 }
-              ]
-          }
+                'Football': [
+                    { id: 'player1', name: 'Striker Sam', initialVotes: 120 },
+                    { id: 'player2', name: 'Midfield Maestro', initialVotes: 90 },
+                    { id: 'player3', name: 'Goalie Greg', initialVotes: 70 }
+                ],
+                'Basketball': [
+                    { id: 'player4', name: 'Dunking Dave', initialVotes: 150 },
+                    { id: 'player5', name: 'Point Guard Pete', initialVotes: 110 },
+                    { id: 'player6', name: 'Rebounding Ron', initialVotes: 80 }
+                ]
+            }
         };
 
         // --- ANIMATED LANDING PAGE ---
@@ -121,28 +149,33 @@
             const [confirmationResult, setConfirmationResult] = useState(null);
 
             const roles = ['Fan', 'Player', 'Reporter', 'Analyst', 'Team', 'Sponsor'];
-            const auth = firebase.auth();
-            const db = firebase.firestore();
-
+            
             useEffect(() => {
-                window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-                    'size': 'invisible',
-                    'callback': (response) => {}
-                });
-            }, []);
+                // Ensure Firebase auth is initialized before creating RecaptchaVerifier
+                if (auth) {
+                    window.recaptchaVerifier = new window.firebaseApp.RecaptchaVerifier('recaptcha-container', {
+                        'size': 'invisible',
+                        'callback': (response) => {
+                            // reCAPTCHA solved, allow signInWithPhoneNumber.
+                            // You can optionally trigger phone sign-in here if needed.
+                        }
+                    }, auth); // Pass auth instance
+                }
+            }, [auth]); // Re-run if auth instance changes (though it shouldn't after initial load)
 
             const handleGoogleSignIn = async () => {
-                const provider = new firebase.auth.GoogleAuthProvider();
+                const provider = new window.firebaseApp.GoogleAuthProvider();
                 try {
-                    const result = await auth.signInWithPopup(provider);
+                    const result = await window.firebaseApp.signInWithPopup(auth, provider);
                     const user = result.user;
                     if (result.additionalUserInfo.isNewUser) {
-                        await db.collection("profiles").doc(user.uid).set({
+                        // Store profile in private collection for the user
+                        await window.firebaseFirestore.setDoc(window.firebaseFirestore.doc(window.firebaseFirestore.collection(db, `artifacts/${appId}/users/${user.uid}/profiles`), user.uid), {
                             email: user.email,
                             name: user.displayName,
-                            role: 'Fan',
-                            avatar: user.photoURL || `https://placehold.co/128x128/34D399/FFFFFF?text=${user.displayName.charAt(0)}`,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            role: 'Fan', // Default role for new Google sign-ups
+                            avatar: user.photoURL || `https://placehold.co/128x128/34D399/FFFFFF?text=${user.displayName ? user.displayName.charAt(0) : 'U'}`,
+                            createdAt: window.firebaseFirestore.serverTimestamp(),
                         });
                     }
                     onAuthSuccess();
@@ -156,13 +189,16 @@
                 setError('');
                 const appVerifier = window.recaptchaVerifier;
                 try {
-                    const result = await auth.signInWithPhoneNumber(phoneNumber, appVerifier);
+                    const result = await window.firebaseApp.signInWithPhoneNumber(auth, phoneNumber, appVerifier);
                     setConfirmationResult(result);
                     setShowOtpInput(true);
                     setError('OTP has been sent to your phone.');
                 } catch (err) {
                     setError(err.message);
-                    window.recaptchaVerifier.render().then(widgetId => grecaptcha.reset(widgetId));
+                    // Reset reCAPTCHA if there's an error
+                    if (appVerifier && appVerifier.render) {
+                        appVerifier.render().then(widgetId => grecaptcha.reset(widgetId));
+                    }
                 }
             };
 
@@ -172,14 +208,17 @@
                 try {
                     const result = await confirmationResult.confirm(otp);
                     const user = result.user;
-                    const profileDoc = await db.collection('profiles').doc(user.uid).get();
+                    // Check if profile exists, if not, create a default one
+                    const profileRef = window.firebaseFirestore.doc(window.firebaseFirestore.collection(db, `artifacts/${appId}/users/${user.uid}/profiles`), user.uid);
+                    const profileDoc = await window.firebaseFirestore.getDoc(profileRef);
+                    
                     if (!profileDoc.exists) {
-                         await db.collection("profiles").doc(user.uid).set({
+                         await window.firebaseFirestore.setDoc(profileRef, {
                             phoneNumber: user.phoneNumber,
-                            role: 'Fan',
+                            role: 'Fan', // Default role for new phone sign-ups
                             name: `User_${user.uid.substring(0,6)}`,
                             avatar: `https://placehold.co/128x128/818CF8/FFFFFF?text=U`,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            createdAt: window.firebaseFirestore.serverTimestamp(),
                         });
                     }
                     onAuthSuccess();
@@ -193,24 +232,27 @@
                 setError('');
                 if (isLoginView) {
                     try {
-                        await auth.signInWithEmailAndPassword(email, password);
+                        await window.firebaseApp.signInWithEmailAndPassword(auth, email, password);
                         onAuthSuccess();
                     } catch (err) {
                         setError(err.message);
                     }
                 } else {
                     try {
-                        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                        const userCredential = await window.firebaseApp.createUserWithEmailAndPassword(auth, email, password);
                         const user = userCredential.user;
-                        await user.sendEmailVerification();
-                        setError("Registration successful! A verification link has been sent to your email.");
-                        await db.collection("profiles").doc(user.uid).set({
+                        // Email verification is optional, but good practice
+                        // await user.sendEmailVerification(); 
+                        setError("Registration successful! You can now log in."); // Removed verification message as it's not implemented
+                        
+                        await window.firebaseFirestore.setDoc(window.firebaseFirestore.doc(window.firebaseFirestore.collection(db, `artifacts/${appId}/users/${user.uid}/profiles`), user.uid), {
                             email: user.email,
                             role: selectedRole,
                             name: email.split('@')[0],
                             avatar: `https://placehold.co/128x128/FBBF24/FFFFFF?text=${email.charAt(0).toUpperCase()}`,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            createdAt: window.firebaseFirestore.serverTimestamp(),
                         });
+                        onAuthSuccess(); // Automatically sign in after registration
                     } catch (err) {
                         setError(err.message);
                     }
@@ -229,9 +271,34 @@
                         </button>
                         <div className="flex items-center my-4"><hr className="flex-grow border-gray-600"/><span className="mx-2 text-gray-400">OR</span><hr className="flex-grow border-gray-600"/></div>
                         {!showOtpInput && (<div className="flex justify-center bg-gray-700 rounded-lg p-1 mb-4"><button onClick={() => setAuthMethod('email')} className={`w-1/2 py-2 rounded-md ${authMethod === 'email' ? 'bg-cyan-500' : ''}`}>Email</button><button onClick={() => setAuthMethod('phone')} className={`w-1/2 py-2 rounded-md ${authMethod === 'phone' ? 'bg-cyan-500' : ''}`}>Phone</button></div>)}
-                        {authMethod === 'email' && !showOtpInput && (<form onSubmit={handleEmailSubmit} className="space-y-4"><input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 rounded-lg bg-gray-700" required/><input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 rounded-lg bg-gray-700" required/>{!isLoginView && (<select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} className="w-full p-3 rounded-lg bg-gray-700"><option disabled>Choose Role</option>{roles.map(r => <option key={r} value={r}>{r}</option>)}</select>)}<button type="submit" className="w-full py-3 bg-cyan-600 rounded-lg font-semibold hover:bg-cyan-700">{isLoginView ? 'Log In' : 'Register with Email'}</button></form>)}
-                        {authMethod === 'phone' && !showOtpInput && (<form onSubmit={handlePhoneSubmit} className="space-y-4"><input type="tel" placeholder="+1 555-555-5555" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full p-3 rounded-lg bg-gray-700" required/><button type="submit" className="w-full py-3 bg-cyan-600 rounded-lg font-semibold hover:bg-cyan-700">Send OTP</button></form>)}
-                        {showOtpInput && (<form onSubmit={handleOtpSubmit} className="space-y-4"><p className="text-sm text-gray-300">Enter the OTP sent to {phoneNumber}</p><input type="text" placeholder="6-digit OTP" value={otp} onChange={(e) => setOtp(e.target.value)} className="w-full p-3 rounded-lg bg-gray-700" required/><button type="submit" className="w-full py-3 bg-cyan-600 rounded-lg font-semibold hover:bg-cyan-700">Verify & Sign In</button></form>)}
+                        {authMethod === 'email' && !showOtpInput && (
+                            <form onSubmit={handleEmailSubmit} className="space-y-4">
+                                <input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 rounded-lg bg-gray-700" required/>
+                                <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 rounded-lg bg-gray-700" required/>
+                                {!isLoginView && (
+                                    <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} className="w-full p-3 rounded-lg bg-gray-700">
+                                        <option disabled>Choose Role</option>
+                                        {roles.map(r => <option key={r} value={r}>{r}</option>)}
+                                    </select>
+                                )}
+                                <button type="submit" className="w-full py-3 bg-cyan-600 rounded-lg font-semibold hover:bg-cyan-700">
+                                    {isLoginView ? 'Log In' : 'Register with Email'}
+                                </button>
+                            </form>
+                        )}
+                        {authMethod === 'phone' && !showOtpInput && (
+                            <form onSubmit={handlePhoneSubmit} className="space-y-4">
+                                <input type="tel" placeholder="+1 555-555-5555" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full p-3 rounded-lg bg-gray-700" required/>
+                                <button type="submit" className="w-full py-3 bg-cyan-600 rounded-lg font-semibold hover:bg-cyan-700">Send OTP</button>
+                            </form>
+                        )}
+                        {showOtpInput && (
+                            <form onSubmit={handleOtpSubmit} className="space-y-4">
+                                <p className="text-sm text-gray-300">Enter the OTP sent to {phoneNumber}</p>
+                                <input type="text" placeholder="6-digit OTP" value={otp} onChange={(e) => setOtp(e.target.value)} className="w-full p-3 rounded-lg bg-gray-700" required/>
+                                <button type="submit" className="w-full py-3 bg-cyan-600 rounded-lg font-semibold hover:bg-cyan-700">Verify & Sign In</button>
+                            </form>
+                        )}
                         {error && <p className="text-red-400 mt-4">{error}</p>}
                         <p className="mt-6">{isLoginView ? "Don't have an account? " : "Already have an account? "}<button onClick={() => { setIsLoginView(!isLoginView); setError('') }} className="font-semibold text-cyan-400 hover:underline">{isLoginView ? 'Register' : 'Log In'}</button></p>
                     </div>
@@ -255,14 +322,14 @@
             <div>
                 <ProfileHeader data={data} />
                 <div className="mt-6 border-t border-gray-700 pt-6">
-                     <h3 className="text-xl font-bold text-white mb-4">Activity</h3>
-                     <p className="text-gray-500">Your recent posts and interactions will appear here.</p>
+                    <h3 className="text-xl font-bold text-white mb-4">Activity</h3>
+                    <p className="text-gray-500">Your recent posts and interactions will appear here.</p>
                 </div>
             </div>
         );
 
         const PlayerProfile = ({ data }) => (
-             <div>
+            <div>
                 <ProfileHeader data={data} />
                 <div className="mt-6 border-t border-gray-700 pt-6 grid md:grid-cols-2 gap-8">
                     <div>
@@ -284,10 +351,10 @@
         const TeamProfile = ({ data }) => (
             <div>
                 <ProfileHeader data={data} />
-                 <div className="mt-6 border-t border-gray-700 pt-6">
-                     <h3 className="text-xl font-bold text-white mb-4">Team Roster</h3>
-                     <p className="text-gray-500">Player roster will be displayed here.</p>
-                </div>
+                   <div className="mt-6 border-t border-gray-700 pt-6">
+                       <h3 className="text-xl font-bold text-white mb-4">Team Roster</h3>
+                       <p className="text-gray-500">Player roster will be displayed here.</p>
+                   </div>
             </div>
         );
 
@@ -435,6 +502,9 @@
 
             const fetchAiInsight = (team1, team2) => {
                 setIsLoading(true);
+                // Simulate API call to Gemini for AI insight
+                // In a real application, you would make a fetch call to your backend
+                // which then calls the Gemini API.
                 setTimeout(() => {
                     const insights = [ `AI predicts ${team1} has a 75% chance to win!`, `AI suggests a key player to watch from ${team2}.`, `AI recommends focusing on defense for ${team1}.`];
                     setAiInsight(insights[Math.floor(Math.random() * insights.length)]);
@@ -816,42 +886,67 @@
             const [profileData, setProfileData] = useState(null);
             const [isLoading, setIsLoading] = useState(true);
             const [activeTab, setActiveTab] = useState('home');
-            const [appState, setAppState] = useState('landing');
+            const [appState, setAppState] = useState('landing'); // 'landing', 'auth', 'mainApp'
 
             useEffect(() => {
-                const unsubscribe = firebase.auth().onAuthStateChanged(async (user) => {
-                    if (user) {
-                        setUser(user);
-                        const profileRef = firebase.firestore().collection('profiles').doc(user.uid);
-                        const doc = await profileRef.get();
-                        if (doc.exists) {
-                            setProfileData(doc.data());
+                // Ensure Firebase is initialized before setting up auth listener
+                if (!auth) return;
+
+                const unsubscribe = window.firebaseApp.onAuthStateChanged(auth, async (currentUser) => {
+                    if (currentUser) {
+                        setUser(currentUser);
+                        const profileRef = window.firebaseFirestore.doc(window.firebaseFirestore.collection(db, `artifacts/${appId}/users/${currentUser.uid}/profiles`), currentUser.uid);
+                        const docSnap = await window.firebaseFirestore.getDoc(profileRef);
+                        
+                        if (docSnap.exists()) {
+                            setProfileData(docSnap.data());
                         } else {
-                            const defaultData = { email: user.email || '', name: user.displayName || `User_${user.uid.substring(0,6)}`, role: 'Fan', avatar: user.photoURL || `https://placehold.co/128x128/34D399/FFFFFF?text=U`, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-                            await profileRef.set(defaultData);
+                            // Create a default profile if it doesn't exist
+                            const defaultData = { 
+                                email: currentUser.email || '', 
+                                name: currentUser.displayName || `User_${currentUser.uid.substring(0,6)}`, 
+                                role: 'Fan', 
+                                avatar: currentUser.photoURL || `https://placehold.co/128x128/34D399/FFFFFF?text=U`, 
+                                createdAt: window.firebaseFirestore.serverTimestamp() 
+                            };
+                            await window.firebaseFirestore.setDoc(profileRef, defaultData);
                             setProfileData(defaultData);
                         }
                         setAppState('mainApp');
                     } else {
+                        // User is signed out or not yet signed in.
+                        // Attempt to sign in with custom token or anonymously.
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            try {
+                                await window.firebaseApp.signInWithCustomToken(auth, __initial_auth_token);
+                            } catch (error) {
+                                console.error("Error signing in with custom token:", error);
+                                await window.firebaseApp.signInAnonymously(auth);
+                            }
+                        } else {
+                            await window.firebaseApp.signInAnonymously(auth);
+                        }
                         setUser(null);
                         setProfileData(null);
-                        // When user logs out, we might want to go back to landing.
-                        // We will handle this explicitly in handleLogout to avoid flicker on initial load.
+                        // Do not change appState here to avoid flicker.
+                        // appState will be updated when a user successfully authenticates.
                     }
                     setIsLoading(false);
                 });
                 return () => unsubscribe();
-            }, []);
+            }, [auth]); // Depend on 'auth' to ensure it's initialized
 
             const handleLogout = () => {
-                firebase.auth().signOut().then(() => {
+                window.firebaseApp.signOut(auth).then(() => {
                     setAppState('landing');
                     setActiveTab('home'); // Reset to home tab on logout
+                }).catch(error => {
+                    console.error("Error logging out:", error);
                 });
             };
 
             const renderProfilePage = () => {
-                if (!profileData) return <div className="text-center p-8">Loading profile...</div>;
+                if (!profileData) return <div className="text-center p-8 text-gray-400">Loading profile...</div>;
                 switch(profileData.role) {
                     case 'Fan': return <FanProfile data={profileData} />;
                     case 'Player': return <PlayerProfile data={profileData} />;
@@ -867,13 +962,13 @@
                     case 'live': return <LiveGames />;
                     case 'news': return <NewsSection />;
                     case 'shop': return <ShopSection />;
-                    case 'moments': return <div className="p-8 text-center"><h1 className="text-2xl">Moments (Sample)</h1></div>;
+                    case 'moments': return <div className="p-8 text-center"><h1 className="text-2xl text-white">Moments (Sample)</h1><p className="text-gray-400">This section is under development.</p></div>;
                     default: return <HomeSection />;
                 }
             };
 
             if (isLoading) {
-                return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>;
+                return <div className="min-h-screen flex items-center justify-center text-white">Loading application...</div>;
             }
 
             if (appState === 'landing') {
@@ -909,5 +1004,3 @@
     </script>
 </body>
 </html>
-"
-I am getting an error with the selected code, can you help me fix 
