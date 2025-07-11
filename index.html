@@ -803,6 +803,13 @@
             );
         };
         
+        const HomeSection = () => (
+            <div className="p-8 text-center">
+                <h1 className="text-4xl font-bold text-white">Welcome to SportSphere</h1>
+                <p className="text-gray-400 mt-2">Your central hub for all things sports. Select a tab to get started!</p>
+            </div>
+        );
+
         // --- MAIN APP ---
         function App() {
             const [user, setUser] = useState(null);
@@ -828,6 +835,8 @@
                     } else {
                         setUser(null);
                         setProfileData(null);
+                        // When user logs out, we might want to go back to landing.
+                        // We will handle this explicitly in handleLogout to avoid flicker on initial load.
                     }
                     setIsLoading(false);
                 });
@@ -835,7 +844,10 @@
             }, []);
 
             const handleLogout = () => {
-                firebase.auth().signOut().then(() => setAppState('landing'));
+                firebase.auth().signOut().then(() => {
+                    setAppState('landing');
+                    setActiveTab('home'); // Reset to home tab on logout
+                });
             };
 
             const renderProfilePage = () => {
@@ -897,3 +909,5 @@
     </script>
 </body>
 </html>
+"
+I am getting an error with the selected code, can you help me fix 
