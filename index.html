@@ -79,19 +79,6 @@
         // MANDATORY: Use __app_id provided by the Canvas environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        let app, auth, db;
-
-        // Initialize Firebase and set up auth listener
-        useEffect(() => {
-            // Initialize Firebase app only once
-            if (!app) {
-                app = window.firebaseApp.initializeApp(firebaseConfig);
-                auth = window.firebaseApp.getAuth(app);
-                db = window.firebaseFirestore.getFirestore(app);
-            }
-        }, []);
-
-
         // --- MOCK DATA (Used as fallback or for sections not yet connected to APIs) ---
         const mockData = {
             posts: Array.from({ length: 20 }, (_, i) => ({
@@ -136,7 +123,7 @@
         );
         
         // --- AUTHENTICATION PAGE ---
-        const AuthPage = ({ onAuthSuccess }) => {
+        const AuthPage = ({ onAuthSuccess, auth, db }) => { // Pass auth and db as props
             const [isLoginView, setIsLoginView] = useState(false);
             const [authMethod, setAuthMethod] = useState('email');
             const [email, setEmail] = useState('');
@@ -888,14 +875,30 @@
             const [activeTab, setActiveTab] = useState('home');
             const [appState, setAppState] = useState('landing'); // 'landing', 'auth', 'mainApp'
 
-            useEffect(() => {
-                // Ensure Firebase is initialized before setting up auth listener
-                if (!auth) return;
+            // Initialize Firebase app, auth, and db instances within the App component
+            const [firebaseAppInstance, setFirebaseAppInstance] = useState(null);
+            const [firebaseAuthInstance, setFirebaseAuthInstance] = useState(null);
+            const [firestoreDbInstance, setFirestoreDbInstance] = useState(null);
 
-                const unsubscribe = window.firebaseApp.onAuthStateChanged(auth, async (currentUser) => {
+            useEffect(() => {
+                if (!firebaseAppInstance) {
+                    const app = window.firebaseApp.initializeApp(firebaseConfig);
+                    const auth = window.firebaseApp.getAuth(app);
+                    const db = window.firebaseFirestore.getFirestore(app);
+                    setFirebaseAppInstance(app);
+                    setFirebaseAuthInstance(auth);
+                    setFirestoreDbInstance(db);
+                }
+            }, [firebaseAppInstance]); // Only run once on component mount
+
+            useEffect(() => {
+                // Ensure Firebase auth is initialized before setting up auth listener
+                if (!firebaseAuthInstance || !firestoreDbInstance) return;
+
+                const unsubscribe = window.firebaseApp.onAuthStateChanged(firebaseAuthInstance, async (currentUser) => {
                     if (currentUser) {
                         setUser(currentUser);
-                        const profileRef = window.firebaseFirestore.doc(window.firebaseFirestore.collection(db, `artifacts/${appId}/users/${currentUser.uid}/profiles`), currentUser.uid);
+                        const profileRef = window.firebaseFirestore.doc(window.firebaseFirestore.collection(firestoreDbInstance, `artifacts/${appId}/users/${currentUser.uid}/profiles`), currentUser.uid);
                         const docSnap = await window.firebaseFirestore.getDoc(profileRef);
                         
                         if (docSnap.exists()) {
@@ -918,13 +921,13 @@
                         // Attempt to sign in with custom token or anonymously.
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             try {
-                                await window.firebaseApp.signInWithCustomToken(auth, __initial_auth_token);
+                                await window.firebaseApp.signInWithCustomToken(firebaseAuthInstance, __initial_auth_token);
                             } catch (error) {
                                 console.error("Error signing in with custom token:", error);
-                                await window.firebaseApp.signInAnonymously(auth);
+                                await window.firebaseApp.signInAnonymously(firebaseAuthInstance);
                             }
                         } else {
-                            await window.firebaseApp.signInAnonymously(auth);
+                            await window.firebaseApp.signInAnonymously(firebaseAuthInstance);
                         }
                         setUser(null);
                         setProfileData(null);
@@ -934,15 +937,17 @@
                     setIsLoading(false);
                 });
                 return () => unsubscribe();
-            }, [auth]); // Depend on 'auth' to ensure it's initialized
+            }, [firebaseAuthInstance, firestoreDbInstance]); // Depend on auth and db instances
 
             const handleLogout = () => {
-                window.firebaseApp.signOut(auth).then(() => {
-                    setAppState('landing');
-                    setActiveTab('home'); // Reset to home tab on logout
-                }).catch(error => {
-                    console.error("Error logging out:", error);
-                });
+                if (firebaseAuthInstance) {
+                    window.firebaseApp.signOut(firebaseAuthInstance).then(() => {
+                        setAppState('landing');
+                        setActiveTab('home'); // Reset to home tab on logout
+                    }).catch(error => {
+                        console.error("Error logging out:", error);
+                    });
+                }
             };
 
             const renderProfilePage = () => {
@@ -967,7 +972,7 @@
                 }
             };
 
-            if (isLoading) {
+            if (isLoading || !firebaseAuthInstance || !firestoreDbInstance) {
                 return <div className="min-h-screen flex items-center justify-center text-white">Loading application...</div>;
             }
 
@@ -976,7 +981,8 @@
             }
 
             if (appState === 'auth') {
-                return <AuthPage onAuthSuccess={() => setAppState('mainApp')} />;
+                // Pass auth and db instances to AuthPage
+                return <AuthPage onAuthSuccess={() => setAppState('mainApp')} auth={firebaseAuthInstance} db={firestoreDbInstance} />;
             }
             
             return (
